@@ -30,10 +30,7 @@ public:
         assert(total_grid_width > 1.5 * playfield_width);
         assert(total_grid_height > playfield_height + 2);
 
-        wallColor.a = 255;
-        wallColor.r = 136;
-        wallColor.g = 13;
-        wallColor.b = 168;
+        wallColors = {{{.r = 240, .g = 0, .b = 255, .a = 255}, {.r = 217, .g = 32, .b = 228, .a = 255}, {.r = 156, .g = 19, .b = 165, .a = 255}}};
 
         Block initialBlock;
 
@@ -77,7 +74,7 @@ public:
             // Right Wall
             setBlock(getWallBlock(i, right_wall_pos), i, right_wall_pos);
             // Floor
-            setBlock(getFloorBlock(playfield_height, bottom), playfield_height, bottom);
+            setBlock(getFloorBlock(playfield_height + 1, bottom), playfield_height + 1, bottom);
 
             bottom = bottom < middle_of_screen + playfiled_half_width + 1 ? bottom + 1 : bottom;
         }
@@ -115,11 +112,9 @@ public:
         Block block;
         block.blockType = BackgroundType;
         block.visible = false;
-        block.color.a = 255;
-        block.color.r = 160;
-        block.color.g = 210;
-        block.color.b = 208;
-
+        block.color1 = {.r = 255, .g = 255, .b = 255, .a = 255};
+        block.color2 = {.r = 255, .g = 255, .b = 255, .a = 255};
+        block.color3 = {.r = 238, .g = 238, .b = 238, .a = 255};
         return block;
     }
 
@@ -180,11 +175,67 @@ public:
         return x_push;
     }
 
+    void drawBlock(SDL_Renderer *renderer, Block block, int border_size, int i, int j)
+    {
+        SDL_Rect rect;
+
+        SDL_SetRenderDrawColor(renderer, block.color1.r, block.color1.g, block.color1.b, 255);
+
+        rect.x = grid_size * j;
+        rect.y = grid_size * i;
+        rect.w = grid_size;
+        rect.h = grid_size;
+
+        SDL_RenderFillRect(renderer, &rect);
+
+        SDL_SetRenderDrawColor(renderer, block.color2.r, block.color2.g, block.color2.b, 240);
+
+        SDL_Rect rect2;
+        rect2.x = grid_size * j + border_size;
+        rect2.y = grid_size * i + border_size;
+        rect2.w = grid_size - border_size;
+        rect2.h = grid_size - border_size;
+
+        SDL_RenderFillRect(renderer, &rect2);
+
+        SDL_Rect small_rect;
+        small_rect.x = grid_size * j;
+        small_rect.y = grid_size * i + grid_size - border_size;
+        small_rect.w = border_size;
+        small_rect.h = border_size;
+
+        SDL_RenderFillRect(renderer, &small_rect);
+
+        small_rect.x = grid_size * j + grid_size - border_size;
+        small_rect.y = grid_size * i;
+        small_rect.w = border_size;
+        small_rect.h = border_size;
+
+        SDL_RenderFillRect(renderer, &small_rect);
+
+        SDL_SetRenderDrawColor(renderer, block.color3.r, block.color3.g, block.color3.b, 255);
+
+        small_rect.x = grid_size * (j + 1) - border_size;
+        small_rect.y = grid_size * i + border_size;
+        small_rect.w = border_size;
+        small_rect.h = grid_size - border_size;
+
+        SDL_RenderFillRect(renderer, &small_rect);
+
+        small_rect.x = grid_size * j + border_size;
+        small_rect.y = grid_size * (i + 1) - border_size;
+        small_rect.w = grid_size - border_size;
+        small_rect.h = border_size;
+
+        SDL_RenderFillRect(renderer, &small_rect);
+    }
+
     void render(SDL_Renderer *renderer)
     {
         // Add moved tetromino to grid
         displayText(renderer);
         int inner_size = 4;
+        int border_size = 2;
         Uint8 val = 25;
 
         for (int i = 0; i < total_grid_height; i++)
@@ -194,55 +245,12 @@ public:
                 Block singleBlock = getBlock(i, j);
                 if (singleBlock.visible)
                 {
-
-                    SDL_Rect rect;
-
-                    Uint8 r = singleBlock.color.r > val ? singleBlock.color.r - val : singleBlock.color.r;
-                    Uint8 g = singleBlock.color.g > val ? singleBlock.color.g - val : singleBlock.color.g;
-                    Uint8 b = singleBlock.color.b > val ? singleBlock.color.b - val : singleBlock.color.b;
-
-                    SDL_SetRenderDrawColor(renderer, r, g, b, 200);
-
-                    rect.x = grid_size * j + 1;
-                    rect.y = grid_size * i + 1;
-                    rect.w = grid_size - 2;
-                    rect.h = grid_size - 2;
-
-                    SDL_RenderFillRect(renderer, &rect);
-                    SDL_SetRenderDrawColor(renderer, singleBlock.color.r, singleBlock.color.g, singleBlock.color.b, singleBlock.color.a);
-
-                    SDL_Rect rect2;
-                    rect2.x = grid_size * j + inner_size;
-                    rect2.y = grid_size * i + inner_size;
-                    rect2.w = grid_size - 2 * inner_size;
-                    rect2.h = grid_size - 2 * inner_size;
-
-                    SDL_RenderFillRect(renderer, &rect2);
+                    drawBlock(renderer, singleBlock, border_size, i, j);                    
                 }
                 else if (isWithinPlayfield(i, j))
                 {
                     Block playfBlc = playfieldBackground();
-
-                    SDL_Rect rect;
-
-                    SDL_SetRenderDrawColor(renderer, playfBlc.color.r, playfBlc.color.g, playfBlc.color.b, 200);
-
-                    rect.x = grid_size * j;
-                    rect.y = grid_size * i;
-                    rect.w = grid_size;
-                    rect.h = grid_size;
-
-                    SDL_RenderFillRect(renderer, &rect);
-
-                    SDL_SetRenderDrawColor(renderer, playfBlc.color.r, playfBlc.color.g, playfBlc.color.b, 255);
-
-                    SDL_Rect rect2;
-                    rect2.x = grid_size * j + 1;
-                    rect2.y = grid_size * i + 1;
-                    rect2.w = grid_size - 2 * 1;
-                    rect2.h = grid_size - 2 * 1;
-
-                    SDL_RenderFillRect(renderer, &rect2);
+                    drawBlock(renderer, playfBlc, border_size, i, j);
                 }
 
                 Block freshBlock;
@@ -270,7 +278,9 @@ public:
     Block getWallBlock(int y, int x)
     {
         Block block;
-        block.color = wallColor;
+        block.color1 = wallColors[0];
+        block.color2 = wallColors[1];
+        block.color3 = wallColors[2];
         block.blockType = BlockType::WallType;
         block.visible = true;
         block.x = x;
@@ -282,7 +292,9 @@ public:
     Block getFloorBlock(int y, int x)
     {
         Block block;
-        block.color = wallColor;
+        block.color1 = wallColors[0];
+        block.color2 = wallColors[1];
+        block.color3 = wallColors[2];
         block.blockType = BlockType::FloorType;
         block.visible = true;
         block.x = x;
@@ -368,14 +380,15 @@ public:
 
                 if (block.visible)
                 {
-                   deposits->addBlock(block, i, convertFromGridXToDepositsX(j));
+                    deposits->addBlock(block, block.y, convertFromGridXToDepositsX(block.x));
                 }
             }
         }
     }
 
-    int convertFromGridXToDepositsX(int j) {
-        return j-left_wall_pos-1;
+    int convertFromGridXToDepositsX(int j)
+    {
+        return j - left_wall_pos - 1;
     }
 
     bool isWithinPlayfield(int y, int x)
@@ -423,6 +436,11 @@ public:
         SDL_DestroyTexture(Message);
     }
 
+    void addDeposits(std::shared_ptr<Deposits> deposits)
+    {
+        this->deposits = deposits;
+    }
+
 private:
     int toOffset(int y, int x)
     {
@@ -442,7 +460,7 @@ private:
     int playfiled_half_width;
     int left_wall_pos;
     int right_wall_pos;
-    SDL_Color wallColor;
+    std::array<SDL_Color, ColorAmount> wallColors;
     std::shared_ptr<Tetromino> tetr;
     std::shared_ptr<Tetromino> nextTetr;
     std::shared_ptr<Deposits> deposits;

@@ -81,6 +81,7 @@ int main(int argc, char **argv)
 
     Grid grid = Grid(1000, 1000, 35);
     std::shared_ptr<Deposits> deposits = std::make_shared<Deposits>(grid.getPlayfieldWidth(), grid.getPlayfieldHeight());
+    grid.addDeposits(deposits);
 
     // Tetromino *tetr, *nextTetr;
     std::shared_ptr<Tetromino> tetr;
@@ -92,8 +93,9 @@ int main(int argc, char **argv)
     {
         if (newBlock)
         {
-            grid.clearLines();
-            tetrominoTypeNum = rand() % tetrominoTypes;
+            deposits->clearLines();
+            // tetrominoTypeNum = rand() % tetrominoTypes;
+            tetrominoTypeNum = 0;
             tetr = nextTetr;
             nextTetr = pickTetromino(tetrominoTypeNum);
             grid.addTetromino(tetr);
@@ -101,6 +103,7 @@ int main(int argc, char **argv)
             grid.moveNextTetrToDisplay();
             tetr->setupPositions();
             grid.moveTetrominoToStart();
+
             newBlock = false;
             firstCheck = true;
             x_push = 0;
@@ -163,10 +166,9 @@ int main(int argc, char **argv)
         grid.placeWalls();
         grid.placeDeposits();
 
-        // x_push = grid.clipToWithinPlayfield(x_push);
+        if(grid.detectCollision(0,0))
+            close = true;
 
-        // if(grid.detectCollision(x_push, 0))
-        //     x_push = 0;
         if (!grid.detectCollision(x_push, 0))
         {
             if (move)

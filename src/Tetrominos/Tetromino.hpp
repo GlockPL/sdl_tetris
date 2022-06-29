@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <SDL2/SDL.h>
 #include "../Structures.h"
 
@@ -11,14 +12,14 @@ private:
     int height;
     int firstNonEmptyRow = -1;
     int firstNonEmptyCol = -1;
-    SDL_Color color;
+    std::array<SDL_Color, ColorAmount> colors;
     std::vector<Block> blocks;
     Block tetrominoBlock;
     Block backgroundBlock;
     std::vector<bool> positions;
 
 public:
-    Tetromino(int width, int height, SDL_Color color, std::vector<bool> positions);
+    Tetromino(int width, int height, std::array<SDL_Color, ColorAmount> colors, std::vector<bool> positions);
     Tetromino();
     ~Tetromino();
     Block getBlock(int y, int x);
@@ -44,10 +45,12 @@ Tetromino::Tetromino()
 {
 }
 
-Tetromino::Tetromino(int width, int height, SDL_Color color, std::vector<bool> positions) : width(width), height(height), color(color), positions(positions)
+Tetromino::Tetromino(int width, int height,  std::array<SDL_Color, ColorAmount> colors, std::vector<bool> positions) : width(width), height(height), colors(colors), positions(positions)
 {
     tetrominoBlock.blockType = BlockType::TetrominoType;
-    tetrominoBlock.color = color;
+    tetrominoBlock.color1 = colors[0];
+    tetrominoBlock.color2 = colors[1];
+    tetrominoBlock.color3 = colors[2];
     tetrominoBlock.visible = true;
 
     firstNonEmptyCol = width - 1;
