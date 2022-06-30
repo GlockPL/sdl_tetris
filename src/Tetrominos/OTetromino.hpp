@@ -3,8 +3,7 @@
 
 class OTetromino : public Tetromino
 {
-private:
-    /* data */
+
 public:
     OTetromino();
     ~OTetromino();

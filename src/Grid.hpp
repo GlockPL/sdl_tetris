@@ -7,6 +7,7 @@
 #include <iostream>
 #include <queue>
 #include <algorithm>
+#include <string>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include "Structures.h"
@@ -16,8 +17,9 @@
 class Grid
 {
 public:
-    Grid(int screen_width, int screen_height, int grid_size) : window_width(screen_width), window_height(screen_height), grid_size(grid_size)
+    Grid(int screen_width, int screen_height, int grid_size, std::string path_to_exec) : window_width(screen_width), window_height(screen_height), grid_size(grid_size), path_to_exec(path_to_exec)
     {
+        std::string path_to_font = path_to_exec + "/../assets/Roboto-Regular.ttf";
         playfield_height = 24;
         playfield_width = 10;
 
@@ -42,7 +44,7 @@ public:
             // success = false;
         }
         // this opens a font style and sets a size
-        Font = TTF_OpenFont("../assets/Roboto-Regular.ttf", 200);
+        Font = TTF_OpenFont(path_to_font.c_str(), 200);
 
         if (Font == NULL)
         {
@@ -441,6 +443,35 @@ public:
         this->deposits = deposits;
     }
 
+    void rotateClockwiseProcedure() {
+        int x_p = 0;
+        int y_p = 0;
+
+        int from = tetr->getCurrentRotation();
+        int to = tetr->rotateClockwise();
+        bool collision = false;
+        std::string kickSignature = std::to_string(from) + "->" + std::to_string(to);
+        std::array<KickPair, Tests> kickMoves = tetr->getKick(kickSignature);
+
+        for (int i = 0; i < Tests; i++)
+        {
+            x_p = kickMoves[i].x;
+            y_p = kickMoves[i].y;
+            collision = detectCollision(x_p,y_p);
+            if(!collision) {
+                tetr->move(x_p, y_p);
+                break;
+            }
+
+        }
+
+        if(collision) {
+            tetr->rotateCounterClockwise();
+        }
+        
+        
+    }
+
 private:
     int toOffset(int y, int x)
     {
@@ -460,6 +491,7 @@ private:
     int playfiled_half_width;
     int left_wall_pos;
     int right_wall_pos;
+    std::string path_to_exec;
     std::array<SDL_Color, ColorAmount> wallColors;
     std::shared_ptr<Tetromino> tetr;
     std::shared_ptr<Tetromino> nextTetr;

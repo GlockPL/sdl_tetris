@@ -2,6 +2,14 @@
 #include <SDL2/SDL.h>
 
 const int ColorAmount = 3;
+const int Tests = 5;
+
+struct KickPair
+{
+    int x;
+    int y;
+};
+
 
 enum BlockType
 {

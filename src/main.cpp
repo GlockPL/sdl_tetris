@@ -13,6 +13,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <memory>
+#include <string>
 
 std::shared_ptr<Tetromino> pickTetromino(int num)
 {
@@ -69,6 +70,10 @@ int main(int argc, char **argv)
     bool move = false;
     bool firstCheck = true;
     const char *title = "Tetris::The Begining";
+    std::string path_to_exec = argv[0];
+
+    path_to_exec = path_to_exec.substr(0, path_to_exec.find_last_of("\\/"));
+    std::cout << path_to_exec << std::endl;
 
     window = SDL_CreateWindow(
         title, SDL_WINDOWPOS_UNDEFINED,
@@ -79,7 +84,7 @@ int main(int argc, char **argv)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    Grid grid = Grid(1000, 1000, 35);
+    Grid grid = Grid(1000, 1000, 35, path_to_exec);
     std::shared_ptr<Deposits> deposits = std::make_shared<Deposits>(grid.getPlayfieldWidth(), grid.getPlayfieldHeight());
     grid.addDeposits(deposits);
 
@@ -94,8 +99,8 @@ int main(int argc, char **argv)
         if (newBlock)
         {
             deposits->clearLines();
-            // tetrominoTypeNum = rand() % tetrominoTypes;
-            tetrominoTypeNum = 0;
+            tetrominoTypeNum = rand() % tetrominoTypes;
+            // tetrominoTypeNum = 0;
             tetr = nextTetr;
             nextTetr = pickTetromino(tetrominoTypeNum);
             grid.addTetromino(tetr);
@@ -108,6 +113,12 @@ int main(int argc, char **argv)
             firstCheck = true;
             x_push = 0;
         }
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        grid.placeWalls();
+        grid.placeDeposits();
 
         while (SDL_PollEvent(&event))
         {
@@ -124,7 +135,11 @@ int main(int argc, char **argv)
                     x_push = -1;
                     break;
                 case SDLK_e:
-                    tetr->rotateClockwise();
+                    grid.rotateClockwiseProcedure();
+                    // x_push = 0;
+                    break;
+                case SDLK_q:
+                    tetr->rotateCounterClockwise();
                     // x_push = 0;
                     break;
                 case SDLK_s:
@@ -158,13 +173,7 @@ int main(int argc, char **argv)
                 break;
             }
         }
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-
-        // Clear winow
-        SDL_RenderClear(renderer);
-
-        grid.placeWalls();
-        grid.placeDeposits();
+        
 
         if(grid.detectCollision(0,0))
             close = true;
@@ -227,7 +236,7 @@ int main(int argc, char **argv)
             move = false;
         }
 
-        std::cout << "Current gravity: " << gravity << std::endl;
+        // std::cout << "Current gravity: " << gravity << std::endl;
     }
 
     SDL_DestroyWindow(window);
