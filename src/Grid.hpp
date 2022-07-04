@@ -8,6 +8,7 @@
 #include <queue>
 #include <algorithm>
 #include <string>
+#include <stdexcept>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include "Structures.h"
@@ -19,8 +20,8 @@ class Grid
 public:
     Grid(int screen_width, int screen_height, int grid_size, std::string path_to_exec) : window_width(screen_width), window_height(screen_height), grid_size(grid_size), path_to_exec(path_to_exec)
     {
-        std::string path_to_font = path_to_exec + "/../assets/Roboto-Regular.ttf";
-        playfield_height = 24;
+        std::string path_to_font = path_to_exec + "/../assets/fonts/light_pixel-7.ttf";
+        playfield_height = 25;
         playfield_width = 10;
 
         total_grid_width = static_cast<int>(window_width / grid_size);
@@ -38,13 +39,17 @@ public:
 
         blocks = std::vector(total_grid_height * total_grid_width, initialBlock);
 
+        std::cout << "Size of blocks in bytes: " << sizeof(std::vector<Block>) + (sizeof(Block) * blocks.size()) << std::endl;
+        std::cout << "Size of Block in bytes: " << sizeof(Block) << std::endl;
+        std::cout << "Size of initial Block in bytes: " << sizeof(initialBlock) << std::endl;
+
         if (TTF_Init() == -1)
         {
             printf("SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError());
             // success = false;
         }
         // this opens a font style and sets a size
-        Font = TTF_OpenFont(path_to_font.c_str(), 200);
+        Font = TTF_OpenFont(path_to_font.c_str(), 20);
 
         if (Font == NULL)
         {
@@ -143,24 +148,34 @@ public:
         }
     };
 
+    // bool detectCollision(int x_push, int y_push)
+    // {
+    //     for (int i = 0; i < tetr->getHeight(); i++)
+    //     {
+    //         for (int j = 0; j < tetr->getWidth(); j++)
+    //         {
+    //             int x = tetr->getBlock(i, j).x;
+    //             int y = tetr->getBlock(i, j).y;
+    //             int offset = toOffset(y + y_push, x + x_push);
+
+    //             if (blocks[offset].visible && tetr->getBlock(i, j).visible)
+    //             {
+    //                 return true;
+    //             }
+    //         }
+    //     }
+
+    //     return false;
+    // }
+
     bool detectCollision(int x_push, int y_push)
     {
-        for (int i = 0; i < tetr->getHeight(); i++)
-        {
-            for (int j = 0; j < tetr->getWidth(); j++)
-            {
-                int x = tetr->getBlock(i, j).x;
-                int y = tetr->getBlock(i, j).y;
-                int offset = toOffset(y + y_push, x + x_push);
+        return detectCollisionForParticularTetr(tetr, x_push, y_push);
+    }
 
-                if (blocks[offset].visible && tetr->getBlock(i, j).visible)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+    bool ghostDetectCollision(int x_push, int y_push)
+    {
+        return detectCollisionForParticularTetr(ghostTetr, x_push, y_push);
     }
 
     int clipToWithinPlayfield(int x_push)
@@ -180,8 +195,9 @@ public:
     void drawBlock(SDL_Renderer *renderer, Block block, int border_size, int i, int j)
     {
         SDL_Rect rect;
+        i -= 1;
 
-        SDL_SetRenderDrawColor(renderer, block.color1.r, block.color1.g, block.color1.b, 255);
+        SDL_SetRenderDrawColor(renderer, block.color1.r, block.color1.g, block.color1.b, block.color1.a);
 
         rect.x = grid_size * j;
         rect.y = grid_size * i;
@@ -190,7 +206,7 @@ public:
 
         SDL_RenderFillRect(renderer, &rect);
 
-        SDL_SetRenderDrawColor(renderer, block.color2.r, block.color2.g, block.color2.b, 240);
+        SDL_SetRenderDrawColor(renderer, block.color2.r, block.color2.g, block.color2.b, block.color2.a);
 
         SDL_Rect rect2;
         rect2.x = grid_size * j + border_size;
@@ -215,7 +231,7 @@ public:
 
         SDL_RenderFillRect(renderer, &small_rect);
 
-        SDL_SetRenderDrawColor(renderer, block.color3.r, block.color3.g, block.color3.b, 255);
+        SDL_SetRenderDrawColor(renderer, block.color3.r, block.color3.g, block.color3.b, block.color3.a);
 
         small_rect.x = grid_size * (j + 1) - border_size;
         small_rect.y = grid_size * i + border_size;
@@ -239,20 +255,26 @@ public:
         int inner_size = 4;
         int border_size = 2;
         Uint8 val = 25;
+        int hiddenLines = 1;
 
         for (int i = 0; i < total_grid_height; i++)
         {
             for (int j = 0; j < total_grid_width; j++)
             {
-                Block singleBlock = getBlock(i, j);
-                if (singleBlock.visible)
+                if (i >= hiddenLines)
                 {
-                    drawBlock(renderer, singleBlock, border_size, i, j);                    
-                }
-                else if (isWithinPlayfield(i, j))
-                {
-                    Block playfBlc = playfieldBackground();
-                    drawBlock(renderer, playfBlc, border_size, i, j);
+                    Block singleBlock = getBlock(i, j);
+
+                    if (isWithinPlayfield(i, j))
+                    {
+                        Block playfBlc = playfieldBackground();
+                        drawBlock(renderer, playfBlc, border_size, i, j);
+                    }
+
+                    if (singleBlock.visible)
+                    {
+                        drawBlock(renderer, singleBlock, border_size, i, j);
+                    }
                 }
 
                 Block freshBlock;
@@ -274,7 +296,10 @@ public:
     {
         int offset = toOffset(y, x);
 
-        blocks[offset] = block;
+        if (offset < maxSize())
+        {
+            blocks[offset] = block;
+        }
     };
 
     Block getWallBlock(int y, int x)
@@ -318,11 +343,36 @@ public:
     void addTetromino(std::shared_ptr<Tetromino> tetromino)
     {
         tetr = tetromino;
+        // Copying content of tetromino to ghost tetromino
     }
 
     void addNextTetromino(std::shared_ptr<Tetromino> tetromino)
     {
         nextTetr = tetromino;
+    }
+
+    void placeGhostTetromino()
+    {
+        ghostTetr = std::make_shared<Tetromino>(*tetr);
+
+        ghostTetr->setAlpha(100);
+        int lastFullRow = ghostTetr->getLastFullRow();
+        int y_pos = ghostTetr->getBlock(lastFullRow, 0).y;
+
+        bool collision = true;
+
+        for (int i = y_pos; i <= playfield_height + 1; i++)
+        {
+            int shift = i - y_pos;
+            collision = ghostDetectCollision(0, shift);
+            if (collision)
+            {
+                if ((ghostTetr->leftYPos() + shift - 1) > 0)
+                    ghostTetr->move(0, shift - 1);
+                // placeTetrominoOnGrid(ghostTetr);
+                break;
+            }
+        }
     }
 
     void moveTetrominoToStart()
@@ -331,7 +381,7 @@ public:
         {
             for (int j = 0; j < tetr->getWidth(); j++)
             {
-                tetr->translateTetromino(i, j, middle_of_screen - tetr->getFirstNonEmptyCol(), -tetr->getFirstNonEmptyRow());
+                tetr->translateTetromino(i, j, middle_of_screen - tetr->getFirstNonEmptyCol(), 0); //-tetr->getFirstNonEmptyRow()
             }
         }
     }
@@ -342,7 +392,7 @@ public:
         {
             for (int j = 0; j < nextTetr->getWidth(); j++)
             {
-                nextTetr->translateTetromino(i, j, right_wall_pos + 2 - nextTetr->getFirstNonEmptyCol(), 2 - nextTetr->getFirstNonEmptyRow());
+                nextTetr->translateTetromino(i, j, right_wall_pos + 2 - nextTetr->getFirstNonEmptyCol(), 3 - nextTetr->getFirstNonEmptyRow());
             }
         }
     }
@@ -368,6 +418,7 @@ public:
 
     void placeTetrominosOnGrid()
     {
+        placeGhostTetromino();
         placeTetrominoOnGrid(tetr);
         placeTetrominoOnGrid(nextTetr);
     }
@@ -413,12 +464,18 @@ public:
 
         // now you can convert it into a texture
         SDL_Texture *Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+        SDL_Rect Text_Proper_Size_Rect;
+        SDL_QueryTexture(Message, nullptr, nullptr, &Text_Proper_Size_Rect.w, &Text_Proper_Size_Rect.h);
 
-        SDL_Rect Message_rect;                             // create a rect
+        SDL_Rect Message_rect; // create a rect
+        // Message_rect.x = (right_wall_pos + 2) * grid_size; // controls the rect's x coordinate
+        // Message_rect.y = grid_size;                        // controls the rect's y coordinte
+        // Message_rect.w = grid_size * 4;                    // controls the width of the rect
+        // Message_rect.h = grid_size;                        // controls the height of the rect
         Message_rect.x = (right_wall_pos + 2) * grid_size; // controls the rect's x coordinate
         Message_rect.y = grid_size;                        // controls the rect's y coordinte
-        Message_rect.w = grid_size * 4;                    // controls the width of the rect
-        Message_rect.h = grid_size;                        // controls the height of the rect
+        Message_rect.w = Text_Proper_Size_Rect.w;          // controls the width of the rect
+        Message_rect.h = Text_Proper_Size_Rect.h;          // controls the height of the rect
 
         // (0,0) is on the top left of the window/screen,
         // think a rect as the text's box,
@@ -443,7 +500,8 @@ public:
         this->deposits = deposits;
     }
 
-    void rotateClockwiseProcedure() {
+    void rotateClockwiseProcedure()
+    {
         int x_p = 0;
         int y_p = 0;
 
@@ -457,25 +515,61 @@ public:
         {
             x_p = kickMoves[i].x;
             y_p = kickMoves[i].y;
-            collision = detectCollision(x_p,y_p);
-            if(!collision) {
+            collision = detectCollision(x_p, y_p);
+            if (!collision)
+            {
                 tetr->move(x_p, y_p);
                 break;
             }
-
         }
 
-        if(collision) {
+        if (collision)
+        {
             tetr->rotateCounterClockwise();
         }
-        
-        
     }
 
 private:
     int toOffset(int y, int x)
     {
-        return y * total_grid_width + x;
+        int addr = y * total_grid_width + x;
+
+        if (addr >= blocks.size() || addr < 0)
+        {
+            throw std::out_of_range("Position is outside of grid!");
+        }
+
+        return addr >= blocks.size() ? blocks.size() - 1 : addr;
+    }
+
+    int maxSize()
+    {
+        return total_grid_height * total_grid_width;
+    }
+
+    bool detectCollisionForParticularTetr(std::shared_ptr<Tetromino> particularTetr, int x_push, int y_push)
+    {
+        for (int i = 0; i < particularTetr->getHeight(); i++)
+        {
+            for (int j = 0; j < particularTetr->getWidth(); j++)
+            {
+                int x = particularTetr->getBlock(i, j).x;
+                int y = particularTetr->getBlock(i, j).y;
+                int offset = toOffset(y + y_push, x + x_push);
+
+                if (y + y_push < 0 || x + x_push < 0)
+                {
+                    return true;
+                }
+
+                if (blocks[offset].visible && particularTetr->getBlock(i, j).visible)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     std::vector<Block> blocks;
@@ -494,6 +588,7 @@ private:
     std::string path_to_exec;
     std::array<SDL_Color, ColorAmount> wallColors;
     std::shared_ptr<Tetromino> tetr;
+    std::shared_ptr<Tetromino> ghostTetr;
     std::shared_ptr<Tetromino> nextTetr;
     std::shared_ptr<Deposits> deposits;
     TTF_Font *Font;

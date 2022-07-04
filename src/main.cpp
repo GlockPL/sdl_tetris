@@ -55,7 +55,6 @@ int main(int argc, char **argv)
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
     SDL_Event event;
-    int start_speed = 5;
     int speed = 60;
     int height = 1000;
     int width = 1000;
@@ -74,6 +73,11 @@ int main(int argc, char **argv)
 
     path_to_exec = path_to_exec.substr(0, path_to_exec.find_last_of("\\/"));
     std::cout << path_to_exec << std::endl;
+
+    if (SDL_Init(SDL_INIT_EVENTS) != 0) {
+        SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
+        return 1;
+    }
 
     window = SDL_CreateWindow(
         title, SDL_WINDOWPOS_UNDEFINED,

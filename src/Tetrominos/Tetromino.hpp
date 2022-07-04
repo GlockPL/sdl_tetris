@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <array>
-#include <map>
+#include <unordered_map>
 #include <SDL2/SDL.h>
 #include "../Structures.h"
 
@@ -15,6 +15,7 @@ private:
     int height;
     int firstNonEmptyRow = -1;
     int firstNonEmptyCol = -1;
+    int lastFullRow = 0;
     int currentRotation = 0;
     std::array<SDL_Color, ColorAmount> colors;
     std::vector<Block> blocks;
@@ -36,13 +37,16 @@ public:
     int getHeight();
     int getFirstNonEmptyRow();
     int getFirstNonEmptyCol();
+    int getLastFullRow();
     int toOffset(int i, int j);
     int rotateClockwise();
     int rotateCounterClockwise();
     int getCurrentRotation();
+    int leftYPos();
     void translateTetromino(int i, int j, int pos_x, int pos_y);
     void moveToInitPos(int y, int x);
     void move(int x_push, int y_push);
+    void setAlpha(int alpha);
     int findMostLeftBlockPos();
     int findMostRightBlockPos();
     std::array<KickPair, Tests> getKick(std::string type);
@@ -81,6 +85,9 @@ void Tetromino::setupPositions()
 
                 if (j < firstNonEmptyCol)
                     firstNonEmptyCol = j;
+
+                if(lastFullRow < i)
+                    lastFullRow = i;
 
                 setTetrominoBlock(i, j);
             }
@@ -159,6 +166,10 @@ int Tetromino::getCurrentRotation() {
     return currentRotation;
 }
 
+int Tetromino::getLastFullRow(){ 
+    return lastFullRow;
+}
+
 void Tetromino::translateTetromino(int i, int j, int pos_x, int pos_y)
 {
     int offset = toOffset(i, j);
@@ -169,6 +180,8 @@ void Tetromino::translateTetromino(int i, int j, int pos_x, int pos_y)
 
 void Tetromino::move(int x_push, int y_push)
 {
+    //Check bounds for move
+
     for (int i = 0; i < getHeight(); i++)
     {
         for (int j = 0; j < getWidth(); j++)
@@ -188,6 +201,7 @@ int Tetromino::rotateClockwise()
     int offsetOriginal;
     firstNonEmptyRow = getHeight() - 1;
     firstNonEmptyCol = getWidth() - 1;
+    lastFullRow = 0;
 
     for (int i = 0; i < getHeight(); i++)
     {
@@ -206,6 +220,9 @@ int Tetromino::rotateClockwise()
 
                 if (getWidth() - 1 - i < firstNonEmptyCol)
                     firstNonEmptyCol = getWidth() - 1 - i;
+
+                if(lastFullRow < i)
+                    lastFullRow = i;
             }
         }
     }
@@ -222,6 +239,7 @@ int Tetromino::rotateCounterClockwise() {
     int offsetOriginal;
     firstNonEmptyRow = getHeight() - 1;
     firstNonEmptyCol = getWidth() - 1;
+    lastFullRow = 0;
 
     for (int i = 0; i < getHeight(); i++)
     {
@@ -240,6 +258,9 @@ int Tetromino::rotateCounterClockwise() {
 
                 if (getWidth() - 1 - i < i)
                     firstNonEmptyCol = i;
+
+                if(lastFullRow < i)
+                    lastFullRow = i;
             }
         }
     }
@@ -275,6 +296,22 @@ int Tetromino::findMostLeftBlockPos()
     return mostLeftPos;
 }
 
+void Tetromino::setAlpha(int alpha) {
+    Block currentBlock;
+    for (int i = 0; i < getHeight(); i++)
+    {
+        for (int j = 0; j < getWidth(); j++)
+        {
+            currentBlock = getBlock(i, j);
+            currentBlock.color1.a = alpha;
+            currentBlock.color2.a = alpha;
+            currentBlock.color3.a = alpha;
+
+            setBlock(currentBlock, i, j);
+        }
+    }
+}
+
 int Tetromino::findMostRightBlockPos()
 {
     Block currentBlock;
@@ -308,6 +345,10 @@ std::array<KickPair, Tests> Tetromino::getKick(std::string type) {
 int Tetromino::toOffset(int i, int j)
 {
     return i * width + j;
+}
+
+int Tetromino::leftYPos() {
+    return blocks[0].y;
 }
 
 Tetromino::~Tetromino()
