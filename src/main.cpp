@@ -74,9 +74,16 @@ int main(int argc, char **argv)
     path_to_exec = path_to_exec.substr(0, path_to_exec.find_last_of("\\/"));
     std::cout << path_to_exec << std::endl;
 
-    if (SDL_Init(SDL_INIT_EVENTS) != 0) {
+    if (SDL_Init(SDL_INIT_EVENTS) != 0)
+    {
         SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
         return 1;
+    }
+
+    if (TTF_Init() == -1)
+    {
+        printf("SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError());
+        // success = false;
     }
 
     window = SDL_CreateWindow(
@@ -140,11 +147,9 @@ int main(int argc, char **argv)
                     break;
                 case SDLK_e:
                     grid.rotateClockwiseProcedure();
-                    // x_push = 0;
                     break;
                 case SDLK_q:
                     tetr->rotateCounterClockwise();
-                    // x_push = 0;
                     break;
                 case SDLK_s:
                     gravity = static_cast<int>(start_gravity * 0.25);
@@ -158,10 +163,8 @@ int main(int argc, char **argv)
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_d:
-                    // x_push = 0;
                     break;
                 case SDLK_a:
-                    // x_push = 0;
                     break;
                 case SDLK_e:
                     break;
@@ -177,9 +180,8 @@ int main(int argc, char **argv)
                 break;
             }
         }
-        
 
-        if(grid.detectCollision(0,0))
+        if (grid.detectCollision(0, 0))
             close = true;
 
         if (!grid.detectCollision(x_push, 0))
@@ -215,7 +217,6 @@ int main(int argc, char **argv)
         }
 
         grid.placeTetrominosOnGrid();
-        grid.render(renderer);
 
         if (renderer == NULL)
         {
@@ -226,6 +227,8 @@ int main(int argc, char **argv)
         {
             std::cout << "Renderer null" << std::endl;
         }
+
+        grid.render(renderer);
 
         SDL_Delay(1000 / speed);
 
@@ -243,6 +246,7 @@ int main(int argc, char **argv)
         // std::cout << "Current gravity: " << gravity << std::endl;
     }
 
+    TTF_Quit();
     SDL_DestroyWindow(window);
     SDL_Quit();
 

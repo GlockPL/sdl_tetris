@@ -13,6 +13,7 @@
 #include <SDL2/SDL_ttf.h>
 #include "Structures.h"
 #include "Deposits.hpp"
+#include "Text.hpp"
 #include "Tetrominos/Tetromino.hpp"
 
 class Grid
@@ -39,32 +40,14 @@ public:
 
         blocks = std::vector(total_grid_height * total_grid_width, initialBlock);
 
-        std::cout << "Size of blocks in bytes: " << sizeof(std::vector<Block>) + (sizeof(Block) * blocks.size()) << std::endl;
-        std::cout << "Size of Block in bytes: " << sizeof(Block) << std::endl;
-        std::cout << "Size of initial Block in bytes: " << sizeof(initialBlock) << std::endl;
-
-        if (TTF_Init() == -1)
-        {
-            printf("SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError());
-            // success = false;
-        }
-        // this opens a font style and sets a size
-        Font = TTF_OpenFont(path_to_font.c_str(), 20);
-
-        if (Font == NULL)
-        {
-            printf("Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError());
-        }
+        
+        nextBlockText = Text(Fonts::BulkyPixel, 25, path_to_exec);// + "/"
 
         addWalls();
     }
 
     ~Grid()
-    {
-        // Free global font
-        TTF_CloseFont(Font);
-        Font = NULL;
-        TTF_Quit();
+    {        
     }
     // Norma is that y i major and x in minor meaning block[y][x] is correct
     void setupWalls()
@@ -251,7 +234,8 @@ public:
     void render(SDL_Renderer *renderer)
     {
         // Add moved tetromino to grid
-        displayText(renderer);
+        // displayText(renderer);
+        nextBlockText.displayText((right_wall_pos + 2) * grid_size, grid_size, "Next Block:", {.r = 255, .g = 255, .b = 255, .a = 255}, renderer);
         int inner_size = 4;
         int border_size = 2;
         Uint8 val = 25;
@@ -369,7 +353,7 @@ public:
             {
                 if ((ghostTetr->leftYPos() + shift - 1) > 0)
                     ghostTetr->move(0, shift - 1);
-                // placeTetrominoOnGrid(ghostTetr);
+                placeTetrominoOnGrid(ghostTetr);
                 break;
             }
         }
@@ -449,51 +433,6 @@ public:
         return x > left_wall_pos && x < right_wall_pos && y < playfield_height;
     }
 
-    void displayText(SDL_Renderer *renderer)
-    {
-
-        // this is the color in rgb format,
-        // maxing out all would give you the color white,
-        // and it will be your text's color
-        SDL_Color White = {255, 255, 100, 255};
-
-        // as TTF_RenderText_Solid could only be used on
-        // SDL_Surface then you have to create the surface first
-        SDL_Surface *surfaceMessage =
-            TTF_RenderText_Solid(Font, "Next Block:", White);
-
-        // now you can convert it into a texture
-        SDL_Texture *Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
-        SDL_Rect Text_Proper_Size_Rect;
-        SDL_QueryTexture(Message, nullptr, nullptr, &Text_Proper_Size_Rect.w, &Text_Proper_Size_Rect.h);
-
-        SDL_Rect Message_rect; // create a rect
-        // Message_rect.x = (right_wall_pos + 2) * grid_size; // controls the rect's x coordinate
-        // Message_rect.y = grid_size;                        // controls the rect's y coordinte
-        // Message_rect.w = grid_size * 4;                    // controls the width of the rect
-        // Message_rect.h = grid_size;                        // controls the height of the rect
-        Message_rect.x = (right_wall_pos + 2) * grid_size; // controls the rect's x coordinate
-        Message_rect.y = grid_size;                        // controls the rect's y coordinte
-        Message_rect.w = Text_Proper_Size_Rect.w;          // controls the width of the rect
-        Message_rect.h = Text_Proper_Size_Rect.h;          // controls the height of the rect
-
-        // (0,0) is on the top left of the window/screen,
-        // think a rect as the text's box,
-        // that way it would be very simple to understand
-
-        // Now since it's a texture, you have to put RenderCopy
-        // in your game loop area, the area where the whole code executes
-
-        // you put the renderer's name first, the Message,
-        // the crop size (you can ignore this if you don't want
-        // to dabble with cropping), and the rect which is the size
-        // and coordinate of your texture
-        SDL_RenderCopy(renderer, Message, NULL, &Message_rect);
-
-        // Don't forget to free your surface and texture
-        SDL_FreeSurface(surfaceMessage);
-        SDL_DestroyTexture(Message);
-    }
 
     void addDeposits(std::shared_ptr<Deposits> deposits)
     {
@@ -591,7 +530,7 @@ private:
     std::shared_ptr<Tetromino> ghostTetr;
     std::shared_ptr<Tetromino> nextTetr;
     std::shared_ptr<Deposits> deposits;
-    TTF_Font *Font;
+    Text nextBlockText;
 };
 
 #endif /* !GRID_H */

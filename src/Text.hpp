@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <memory>
+#include <filesystem>
 
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL.h>
@@ -24,11 +25,13 @@ class Text
 private:
     // std::shared_ptr<TTF_Font> font;
     TTF_Font* font;
-    std::string prefix = "/../assets/fonts/";
+    std::string prefix = "../assets/fonts/";
     std::string full_path;
     Fonts picked_font;
     int font_size;
     std::string path_to_assets_folder;
+    int deRefcount = 0;
+    int unsuccesfullRefCount = 0;
 public:
     static std::unordered_map<Fonts, std::string> available_fonts;
     std::string getFullPath(std::string path_to_assets_folder);
@@ -51,8 +54,9 @@ Text::Text(Fonts picked_font, int font_size, std::string path_to_assets_folder):
 {
     std::string full_path = getFullPath(path_to_assets_folder);
 
-    // font = std::shared_ptr<TTF_Font>(TTF_OpenFont(full_path.c_str(), font_size));
     font = TTF_OpenFont(full_path.c_str(), font_size);
+
+    std::cout << "Adres: " << font << std::endl;
 
     if(!font) {
         std::cerr << "Failed to load font! " << TTF_GetError() << std::endl;
@@ -82,14 +86,23 @@ Text& Text::operator=(Text&& txt) {
 
 Text::~Text()
 {   
+    std::cout << "Adres: " << font << std::endl;    
     if(font != nullptr) {
+        deRefcount++;
+        std::cout << "Dereferencja nr: " << deRefcount << std::endl;
         TTF_CloseFont(font);
+    } else {
+        unsuccesfullRefCount++;
+        std::cout << "Dereferencja nie udana nr: " << unsuccesfullRefCount << std::endl;
     }
     
 }
 
 std::string Text::getFullPath(std::string path_to_assets_folder) {
-    return path_to_assets_folder + prefix + available_fonts[picked_font];
+    std::filesystem::path p = ".";
+    std::string abs_path = std::filesystem::absolute(p).generic_string(); 
+    abs_path = abs_path.substr(0, abs_path.length()-1);
+    return abs_path + prefix + available_fonts[picked_font];
 }
 
 void Text::displayText(int x, int y, std::string text, SDL_Color color, SDL_Renderer *renderer) {
@@ -105,4 +118,5 @@ void Text::displayText(int x, int y, std::string text, SDL_Color color, SDL_Rend
     SDL_RenderCopy(renderer, text_texture, NULL, &Text_Proper_Size_Rect);
 
     SDL_FreeSurface(text_surface);
+    SDL_DestroyTexture(text_texture);
 }
