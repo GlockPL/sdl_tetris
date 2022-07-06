@@ -13,6 +13,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <memory>
+#include <string>
 
 std::shared_ptr<Tetromino> pickTetromino(int num)
 {
@@ -54,7 +55,6 @@ int main(int argc, char **argv)
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
     SDL_Event event;
-    int start_speed = 5;
     int speed = 60;
     int height = 1000;
     int width = 1000;
@@ -69,6 +69,16 @@ int main(int argc, char **argv)
     bool move = false;
     bool firstCheck = true;
     const char *title = "Tetris::The Begining";
+    std::string path_to_exec = argv[0];
+
+    path_to_exec = path_to_exec.substr(0, path_to_exec.find_last_of("\\/"));
+    std::cout << path_to_exec << std::endl;
+
+    if (SDL_Init(SDL_INIT_EVENTS) != 0)
+    {
+        SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
+        return 1;
+    }
 
     window = SDL_CreateWindow(
         title, SDL_WINDOWPOS_UNDEFINED,
@@ -79,8 +89,9 @@ int main(int argc, char **argv)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    Grid grid = Grid(1000, 1000, 35);
+    Grid grid = Grid(1000, 1000, 35, path_to_exec);
     std::shared_ptr<Deposits> deposits = std::make_shared<Deposits>(grid.getPlayfieldWidth(), grid.getPlayfieldHeight());
+    grid.addDeposits(deposits);
 
     // Tetromino *tetr, *nextTetr;
     std::shared_ptr<Tetromino> tetr;
@@ -92,8 +103,9 @@ int main(int argc, char **argv)
     {
         if (newBlock)
         {
-            grid.clearLines();
+            deposits->clearLines();
             tetrominoTypeNum = rand() % tetrominoTypes;
+            // tetrominoTypeNum = 0;
             tetr = nextTetr;
             nextTetr = pickTetromino(tetrominoTypeNum);
             grid.addTetromino(tetr);
@@ -101,10 +113,17 @@ int main(int argc, char **argv)
             grid.moveNextTetrToDisplay();
             tetr->setupPositions();
             grid.moveTetrominoToStart();
+
             newBlock = false;
             firstCheck = true;
             x_push = 0;
         }
+
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        grid.placeWalls();
+        grid.placeDeposits();
 
         while (SDL_PollEvent(&event))
         {
@@ -121,8 +140,10 @@ int main(int argc, char **argv)
                     x_push = -1;
                     break;
                 case SDLK_e:
-                    tetr->rotateClockwise();
-                    // x_push = 0;
+                    grid.rotateClockwiseProcedure();
+                    break;
+                case SDLK_q:
+                    tetr->rotateCounterClockwise();
                     break;
                 case SDLK_s:
                     gravity = static_cast<int>(start_gravity * 0.25);
@@ -136,10 +157,8 @@ int main(int argc, char **argv)
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_d:
-                    // x_push = 0;
                     break;
                 case SDLK_a:
-                    // x_push = 0;
                     break;
                 case SDLK_e:
                     break;
@@ -155,18 +174,10 @@ int main(int argc, char **argv)
                 break;
             }
         }
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
-        // Clear winow
-        SDL_RenderClear(renderer);
+        if (grid.detectCollision(0, 0))
+            close = true;
 
-        grid.placeWalls();
-        grid.placeDeposits();
-
-        // x_push = grid.clipToWithinPlayfield(x_push);
-
-        // if(grid.detectCollision(x_push, 0))
-        //     x_push = 0;
         if (!grid.detectCollision(x_push, 0))
         {
             if (move)
@@ -200,7 +211,6 @@ int main(int argc, char **argv)
         }
 
         grid.placeTetrominosOnGrid();
-        grid.render(renderer);
 
         if (renderer == NULL)
         {
@@ -211,6 +221,8 @@ int main(int argc, char **argv)
         {
             std::cout << "Renderer null" << std::endl;
         }
+
+        grid.render(renderer);
 
         SDL_Delay(1000 / speed);
 
@@ -225,7 +237,7 @@ int main(int argc, char **argv)
             move = false;
         }
 
-        std::cout << "Current gravity: " << gravity << std::endl;
+        // std::cout << "Current gravity: " << gravity << std::endl;
     }
 
     SDL_DestroyWindow(window);

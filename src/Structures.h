@@ -1,6 +1,16 @@
 #pragma once
 #include <SDL2/SDL.h>
 
+const int ColorAmount = 3;
+const int Tests = 5;
+
+struct KickPair
+{
+    int x;
+    int y;
+};
+
+
 enum BlockType
 {
     TetrominoType,
@@ -16,7 +26,9 @@ struct Block
     int y = 0;
     BlockType blockType = BlockType::BackgroundType;
     bool visible = false;
-    SDL_Color color = {.r = 123, .g = 123, .b = 123};
+    SDL_Color color1 = {.r = 123, .g = 123, .b = 123};
+    SDL_Color color2 = {.r = 123, .g = 123, .b = 123};
+    SDL_Color color3 = {.r = 123, .g = 123, .b = 123};
 
     bool operator < (const Block& str) const
     {

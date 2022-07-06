@@ -7,18 +7,21 @@
 #include <iostream>
 #include <queue>
 #include <algorithm>
+#include <string>
+#include <stdexcept>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 #include "Structures.h"
 #include "Deposits.hpp"
+#include "Text.hpp"
 #include "Tetrominos/Tetromino.hpp"
 
 class Grid
 {
 public:
-    Grid(int screen_width, int screen_height, int grid_size) : window_width(screen_width), window_height(screen_height), grid_size(grid_size)
+    Grid(int screen_width, int screen_height, int grid_size, std::string path_to_exec) : window_width(screen_width), window_height(screen_height), grid_size(grid_size), path_to_exec(path_to_exec), nextBlockText(Text(Fonts::BulkyPixel, 25, path_to_exec))
     {
-        playfield_height = 24;
+        std::string path_to_font = path_to_exec + "/../assets/fonts/light_pixel-7.ttf";
+        playfield_height = 25;
         playfield_width = 10;
 
         total_grid_width = static_cast<int>(window_width / grid_size);
@@ -30,37 +33,20 @@ public:
         assert(total_grid_width > 1.5 * playfield_width);
         assert(total_grid_height > playfield_height + 2);
 
-        wallColor.a = 255;
-        wallColor.r = 136;
-        wallColor.g = 13;
-        wallColor.b = 168;
+        wallColors = {{{.r = 240, .g = 0, .b = 255, .a = 255}, {.r = 217, .g = 32, .b = 228, .a = 255}, {.r = 156, .g = 19, .b = 165, .a = 255}}};
 
         Block initialBlock;
 
         blocks = std::vector(total_grid_height * total_grid_width, initialBlock);
 
-        if (TTF_Init() == -1)
-        {
-            printf("SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError());
-            // success = false;
-        }
-        // this opens a font style and sets a size
-        Font = TTF_OpenFont("../assets/Roboto-Regular.ttf", 200);
-
-        if (Font == NULL)
-        {
-            printf("Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError());
-        }
+        
+        // nextBlockText = Text(Fonts::BulkyPixel, 25, path_to_exec);// + "/"
 
         addWalls();
     }
 
     ~Grid()
-    {
-        // Free global font
-        TTF_CloseFont(Font);
-        Font = NULL;
-        TTF_Quit();
+    {        
     }
     // Norma is that y i major and x in minor meaning block[y][x] is correct
     void setupWalls()
@@ -77,7 +63,7 @@ public:
             // Right Wall
             setBlock(getWallBlock(i, right_wall_pos), i, right_wall_pos);
             // Floor
-            setBlock(getFloorBlock(playfield_height, bottom), playfield_height, bottom);
+            setBlock(getFloorBlock(playfield_height + 1, bottom), playfield_height + 1, bottom);
 
             bottom = bottom < middle_of_screen + playfiled_half_width + 1 ? bottom + 1 : bottom;
         }
@@ -115,11 +101,9 @@ public:
         Block block;
         block.blockType = BackgroundType;
         block.visible = false;
-        block.color.a = 255;
-        block.color.r = 160;
-        block.color.g = 210;
-        block.color.b = 208;
-
+        block.color1 = {.r = 255, .g = 255, .b = 255, .a = 255};
+        block.color2 = {.r = 255, .g = 255, .b = 255, .a = 255};
+        block.color3 = {.r = 238, .g = 238, .b = 238, .a = 255};
         return block;
     }
 
@@ -146,24 +130,34 @@ public:
         }
     };
 
+    // bool detectCollision(int x_push, int y_push)
+    // {
+    //     for (int i = 0; i < tetr->getHeight(); i++)
+    //     {
+    //         for (int j = 0; j < tetr->getWidth(); j++)
+    //         {
+    //             int x = tetr->getBlock(i, j).x;
+    //             int y = tetr->getBlock(i, j).y;
+    //             int offset = toOffset(y + y_push, x + x_push);
+
+    //             if (blocks[offset].visible && tetr->getBlock(i, j).visible)
+    //             {
+    //                 return true;
+    //             }
+    //         }
+    //     }
+
+    //     return false;
+    // }
+
     bool detectCollision(int x_push, int y_push)
     {
-        for (int i = 0; i < tetr->getHeight(); i++)
-        {
-            for (int j = 0; j < tetr->getWidth(); j++)
-            {
-                int x = tetr->getBlock(i, j).x;
-                int y = tetr->getBlock(i, j).y;
-                int offset = toOffset(y + y_push, x + x_push);
+        return detectCollisionForParticularTetr(tetr, x_push, y_push);
+    }
 
-                if (blocks[offset].visible && tetr->getBlock(i, j).visible)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+    bool ghostDetectCollision(int x_push, int y_push)
+    {
+        return detectCollisionForParticularTetr(ghostTetr, x_push, y_push);
     }
 
     int clipToWithinPlayfield(int x_push)
@@ -180,69 +174,90 @@ public:
         return x_push;
     }
 
+    void drawBlock(SDL_Renderer *renderer, Block block, int border_size, int i, int j)
+    {
+        SDL_Rect rect;
+        i -= 1;
+
+        SDL_SetRenderDrawColor(renderer, block.color1.r, block.color1.g, block.color1.b, block.color1.a);
+
+        rect.x = grid_size * j;
+        rect.y = grid_size * i;
+        rect.w = grid_size;
+        rect.h = grid_size;
+
+        SDL_RenderFillRect(renderer, &rect);
+
+        SDL_SetRenderDrawColor(renderer, block.color2.r, block.color2.g, block.color2.b, block.color2.a);
+
+        SDL_Rect rect2;
+        rect2.x = grid_size * j + border_size;
+        rect2.y = grid_size * i + border_size;
+        rect2.w = grid_size - border_size;
+        rect2.h = grid_size - border_size;
+
+        SDL_RenderFillRect(renderer, &rect2);
+
+        SDL_Rect small_rect;
+        small_rect.x = grid_size * j;
+        small_rect.y = grid_size * i + grid_size - border_size;
+        small_rect.w = border_size;
+        small_rect.h = border_size;
+
+        SDL_RenderFillRect(renderer, &small_rect);
+
+        small_rect.x = grid_size * j + grid_size - border_size;
+        small_rect.y = grid_size * i;
+        small_rect.w = border_size;
+        small_rect.h = border_size;
+
+        SDL_RenderFillRect(renderer, &small_rect);
+
+        SDL_SetRenderDrawColor(renderer, block.color3.r, block.color3.g, block.color3.b, block.color3.a);
+
+        small_rect.x = grid_size * (j + 1) - border_size;
+        small_rect.y = grid_size * i + border_size;
+        small_rect.w = border_size;
+        small_rect.h = grid_size - border_size;
+
+        SDL_RenderFillRect(renderer, &small_rect);
+
+        small_rect.x = grid_size * j + border_size;
+        small_rect.y = grid_size * (i + 1) - border_size;
+        small_rect.w = grid_size - border_size;
+        small_rect.h = border_size;
+
+        SDL_RenderFillRect(renderer, &small_rect);
+    }
+
     void render(SDL_Renderer *renderer)
     {
         // Add moved tetromino to grid
-        displayText(renderer);
+        // displayText(renderer);
+        nextBlockText.displayText((right_wall_pos + 2) * grid_size, grid_size, "Next Block:", {.r = 255, .g = 255, .b = 255, .a = 255}, renderer);
         int inner_size = 4;
+        int border_size = 2;
         Uint8 val = 25;
+        int hiddenLines = 1;
 
         for (int i = 0; i < total_grid_height; i++)
         {
             for (int j = 0; j < total_grid_width; j++)
             {
-                Block singleBlock = getBlock(i, j);
-                if (singleBlock.visible)
+                if (i >= hiddenLines)
                 {
+                    Block singleBlock = getBlock(i, j);
 
-                    SDL_Rect rect;
+                    if (isWithinPlayfield(i, j))
+                    {
+                        Block playfBlc = playfieldBackground();
+                        drawBlock(renderer, playfBlc, border_size, i, j);
+                    }
 
-                    Uint8 r = singleBlock.color.r > val ? singleBlock.color.r - val : singleBlock.color.r;
-                    Uint8 g = singleBlock.color.g > val ? singleBlock.color.g - val : singleBlock.color.g;
-                    Uint8 b = singleBlock.color.b > val ? singleBlock.color.b - val : singleBlock.color.b;
-
-                    SDL_SetRenderDrawColor(renderer, r, g, b, 200);
-
-                    rect.x = grid_size * j + 1;
-                    rect.y = grid_size * i + 1;
-                    rect.w = grid_size - 2;
-                    rect.h = grid_size - 2;
-
-                    SDL_RenderFillRect(renderer, &rect);
-                    SDL_SetRenderDrawColor(renderer, singleBlock.color.r, singleBlock.color.g, singleBlock.color.b, singleBlock.color.a);
-
-                    SDL_Rect rect2;
-                    rect2.x = grid_size * j + inner_size;
-                    rect2.y = grid_size * i + inner_size;
-                    rect2.w = grid_size - 2 * inner_size;
-                    rect2.h = grid_size - 2 * inner_size;
-
-                    SDL_RenderFillRect(renderer, &rect2);
-                }
-                else if (isWithinPlayfield(i, j))
-                {
-                    Block playfBlc = playfieldBackground();
-
-                    SDL_Rect rect;
-
-                    SDL_SetRenderDrawColor(renderer, playfBlc.color.r, playfBlc.color.g, playfBlc.color.b, 200);
-
-                    rect.x = grid_size * j;
-                    rect.y = grid_size * i;
-                    rect.w = grid_size;
-                    rect.h = grid_size;
-
-                    SDL_RenderFillRect(renderer, &rect);
-
-                    SDL_SetRenderDrawColor(renderer, playfBlc.color.r, playfBlc.color.g, playfBlc.color.b, 255);
-
-                    SDL_Rect rect2;
-                    rect2.x = grid_size * j + 1;
-                    rect2.y = grid_size * i + 1;
-                    rect2.w = grid_size - 2 * 1;
-                    rect2.h = grid_size - 2 * 1;
-
-                    SDL_RenderFillRect(renderer, &rect2);
+                    if (singleBlock.visible)
+                    {
+                        drawBlock(renderer, singleBlock, border_size, i, j);
+                    }
                 }
 
                 Block freshBlock;
@@ -264,13 +279,18 @@ public:
     {
         int offset = toOffset(y, x);
 
-        blocks[offset] = block;
+        if (offset < maxSize())
+        {
+            blocks[offset] = block;
+        }
     };
 
     Block getWallBlock(int y, int x)
     {
         Block block;
-        block.color = wallColor;
+        block.color1 = wallColors[0];
+        block.color2 = wallColors[1];
+        block.color3 = wallColors[2];
         block.blockType = BlockType::WallType;
         block.visible = true;
         block.x = x;
@@ -282,7 +302,9 @@ public:
     Block getFloorBlock(int y, int x)
     {
         Block block;
-        block.color = wallColor;
+        block.color1 = wallColors[0];
+        block.color2 = wallColors[1];
+        block.color3 = wallColors[2];
         block.blockType = BlockType::FloorType;
         block.visible = true;
         block.x = x;
@@ -304,11 +326,36 @@ public:
     void addTetromino(std::shared_ptr<Tetromino> tetromino)
     {
         tetr = tetromino;
+        // Copying content of tetromino to ghost tetromino
     }
 
     void addNextTetromino(std::shared_ptr<Tetromino> tetromino)
     {
         nextTetr = tetromino;
+    }
+
+    void placeGhostTetromino()
+    {
+        ghostTetr = std::make_shared<Tetromino>(*tetr);
+
+        ghostTetr->setAlpha(100);
+        int lastFullRow = ghostTetr->getLastFullRow();
+        int y_pos = ghostTetr->getBlock(lastFullRow, 0).y;
+
+        bool collision = true;
+
+        for (int i = y_pos; i <= playfield_height + 1; i++)
+        {
+            int shift = i - y_pos;
+            collision = ghostDetectCollision(0, shift);
+            if (collision)
+            {
+                if ((ghostTetr->leftYPos() + shift - 1) > 0)
+                    ghostTetr->move(0, shift - 1);
+                placeTetrominoOnGrid(ghostTetr);
+                break;
+            }
+        }
     }
 
     void moveTetrominoToStart()
@@ -317,7 +364,7 @@ public:
         {
             for (int j = 0; j < tetr->getWidth(); j++)
             {
-                tetr->translateTetromino(i, j, middle_of_screen - tetr->getFirstNonEmptyCol(), -tetr->getFirstNonEmptyRow());
+                tetr->translateTetromino(i, j, middle_of_screen - tetr->getFirstNonEmptyCol(), 0); //-tetr->getFirstNonEmptyRow()
             }
         }
     }
@@ -328,7 +375,7 @@ public:
         {
             for (int j = 0; j < nextTetr->getWidth(); j++)
             {
-                nextTetr->translateTetromino(i, j, right_wall_pos + 2 - nextTetr->getFirstNonEmptyCol(), 2 - nextTetr->getFirstNonEmptyRow());
+                nextTetr->translateTetromino(i, j, right_wall_pos + 2 - nextTetr->getFirstNonEmptyCol(), 3 - nextTetr->getFirstNonEmptyRow());
             }
         }
     }
@@ -354,6 +401,7 @@ public:
 
     void placeTetrominosOnGrid()
     {
+        placeGhostTetromino();
         placeTetrominoOnGrid(tetr);
         placeTetrominoOnGrid(nextTetr);
     }
@@ -368,14 +416,15 @@ public:
 
                 if (block.visible)
                 {
-                   deposits->addBlock(block, i, convertFromGridXToDepositsX(j));
+                    deposits->addBlock(block, block.y, convertFromGridXToDepositsX(block.x));
                 }
             }
         }
     }
 
-    int convertFromGridXToDepositsX(int j) {
-        return j-left_wall_pos-1;
+    int convertFromGridXToDepositsX(int j)
+    {
+        return j - left_wall_pos - 1;
     }
 
     bool isWithinPlayfield(int y, int x)
@@ -383,50 +432,82 @@ public:
         return x > left_wall_pos && x < right_wall_pos && y < playfield_height;
     }
 
-    void displayText(SDL_Renderer *renderer)
+
+    void addDeposits(std::shared_ptr<Deposits> deposits)
     {
+        this->deposits = deposits;
+    }
 
-        // this is the color in rgb format,
-        // maxing out all would give you the color white,
-        // and it will be your text's color
-        SDL_Color White = {255, 255, 100, 255};
+    void rotateClockwiseProcedure()
+    {
+        int x_p = 0;
+        int y_p = 0;
 
-        // as TTF_RenderText_Solid could only be used on
-        // SDL_Surface then you have to create the surface first
-        SDL_Surface *surfaceMessage =
-            TTF_RenderText_Solid(Font, "Next Block:", White);
+        int from = tetr->getCurrentRotation();
+        int to = tetr->rotateClockwise();
+        bool collision = false;
+        std::string kickSignature = std::to_string(from) + "->" + std::to_string(to);
+        std::array<KickPair, Tests> kickMoves = tetr->getKick(kickSignature);
 
-        // now you can convert it into a texture
-        SDL_Texture *Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+        for (int i = 0; i < Tests; i++)
+        {
+            x_p = kickMoves[i].x;
+            y_p = kickMoves[i].y;
+            collision = detectCollision(x_p, y_p);
+            if (!collision)
+            {
+                tetr->move(x_p, y_p);
+                break;
+            }
+        }
 
-        SDL_Rect Message_rect;                             // create a rect
-        Message_rect.x = (right_wall_pos + 2) * grid_size; // controls the rect's x coordinate
-        Message_rect.y = grid_size;                        // controls the rect's y coordinte
-        Message_rect.w = grid_size * 4;                    // controls the width of the rect
-        Message_rect.h = grid_size;                        // controls the height of the rect
-
-        // (0,0) is on the top left of the window/screen,
-        // think a rect as the text's box,
-        // that way it would be very simple to understand
-
-        // Now since it's a texture, you have to put RenderCopy
-        // in your game loop area, the area where the whole code executes
-
-        // you put the renderer's name first, the Message,
-        // the crop size (you can ignore this if you don't want
-        // to dabble with cropping), and the rect which is the size
-        // and coordinate of your texture
-        SDL_RenderCopy(renderer, Message, NULL, &Message_rect);
-
-        // Don't forget to free your surface and texture
-        SDL_FreeSurface(surfaceMessage);
-        SDL_DestroyTexture(Message);
+        if (collision)
+        {
+            tetr->rotateCounterClockwise();
+        }
     }
 
 private:
     int toOffset(int y, int x)
     {
-        return y * total_grid_width + x;
+        int addr = y * total_grid_width + x;
+
+        if (addr >= blocks.size() || addr < 0)
+        {
+            throw std::out_of_range("Position is outside of grid!");
+        }
+
+        return addr >= blocks.size() ? blocks.size() - 1 : addr;
+    }
+
+    int maxSize()
+    {
+        return total_grid_height * total_grid_width;
+    }
+
+    bool detectCollisionForParticularTetr(std::shared_ptr<Tetromino> particularTetr, int x_push, int y_push)
+    {
+        for (int i = 0; i < particularTetr->getHeight(); i++)
+        {
+            for (int j = 0; j < particularTetr->getWidth(); j++)
+            {
+                int x = particularTetr->getBlock(i, j).x;
+                int y = particularTetr->getBlock(i, j).y;
+                int offset = toOffset(y + y_push, x + x_push);
+
+                if (y + y_push < 0 || x + x_push < 0)
+                {
+                    return true;
+                }
+
+                if (blocks[offset].visible && particularTetr->getBlock(i, j).visible)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     std::vector<Block> blocks;
@@ -442,11 +523,13 @@ private:
     int playfiled_half_width;
     int left_wall_pos;
     int right_wall_pos;
-    SDL_Color wallColor;
+    std::string path_to_exec;
+    std::array<SDL_Color, ColorAmount> wallColors;
     std::shared_ptr<Tetromino> tetr;
+    std::shared_ptr<Tetromino> ghostTetr;
     std::shared_ptr<Tetromino> nextTetr;
     std::shared_ptr<Deposits> deposits;
-    TTF_Font *Font;
+    Text nextBlockText;
 };
 
 #endif /* !GRID_H */

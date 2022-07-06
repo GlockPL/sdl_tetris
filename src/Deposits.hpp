@@ -59,7 +59,7 @@ Block Deposits::at(int i, int j)
 
 bool Deposits::lineFull(int i)
 {
-    int col = 1;
+    int col = 0;
 
     for (int j = 0; j < getWidth(); j++)
     {
@@ -79,11 +79,15 @@ void Deposits::clearLine(int i)
         deposits[toOffset(i, j)] = defaultBlock;
     }
 }
-
+//This assumes that to is always bigger than from
 void Deposits::moveLine(int from, int to) {
+    int diff=0;
     for (int j = 0; j < getWidth(); j++)
     {
-        deposits[toOffset(to, j)] = deposits[toOffset(from, j)];
+        diff = to - from;
+        Block fromBlock = deposits[toOffset(from, j)];
+        fromBlock.y = fromBlock.y + diff;
+        deposits[toOffset(to, j)] = fromBlock;
     }
 }
 
@@ -92,7 +96,6 @@ void Deposits::clearLines()
     if (!deposits.empty())
     {
         int lines = 0;
-        std::vector<Block> newDeposits;
 
         for (int i = getHeight() - 1; i >= 0; i--)
         {
@@ -104,7 +107,7 @@ void Deposits::clearLines()
             }
 
             if(lines > 0) {
-                moveLine(i, i-lines);
+                moveLine(i, i+lines);
             }
         }
     }
