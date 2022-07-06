@@ -80,12 +80,6 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (TTF_Init() == -1)
-    {
-        printf("SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError());
-        // success = false;
-    }
-
     window = SDL_CreateWindow(
         title, SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
@@ -246,7 +240,6 @@ int main(int argc, char **argv)
         // std::cout << "Current gravity: " << gravity << std::endl;
     }
 
-    TTF_Quit();
     SDL_DestroyWindow(window);
     SDL_Quit();
 
