@@ -25,16 +25,18 @@ class Text
 private:
     // std::shared_ptr<TTF_Font> font;
     TTF_Font* font;
-    std::string prefix = "../assets/fonts/";
+    std::string prefix = "/fonts/";
     std::string full_path;
     Fonts picked_font;
     int font_size;
     std::string path_to_assets_folder;
     int deRefcount = 0;
     int unsuccesfullRefCount = 0;
+    void swap(Text &first, Text &second);
 public:
     static std::unordered_map<Fonts, std::string> available_fonts;
     std::string getFullPath(std::string path_to_assets_folder);
+    std::string searchForAssets();
     Text(Fonts fonts, int font_size, std::string path_to_assets_folder);
     Text() : Text(Fonts::BulkyPixel, 30, "") {};
     // not copyable
@@ -52,7 +54,8 @@ std::unordered_map<Fonts, std::string> Text::available_fonts({{Fonts::BulkyPixel
 
 Text::Text(Fonts picked_font, int font_size, std::string path_to_assets_folder): picked_font(picked_font), font_size(font_size), path_to_assets_folder(path_to_assets_folder)
 {
-    std::string full_path = getFullPath(path_to_assets_folder);
+    std::cout << "Wykonano konstruktor" << std::endl;
+    std::string full_path = getFullPath(searchForAssets());
 
     font = TTF_OpenFont(full_path.c_str(), font_size);
 
@@ -65,23 +68,20 @@ Text::Text(Fonts picked_font, int font_size, std::string path_to_assets_folder):
 }
 
 Text::Text(Text&& txt){
-    prefix = txt.prefix;
-    picked_font = txt.picked_font;
-    font_size = txt.font_size;
-    path_to_assets_folder = txt.path_to_assets_folder;
-    font = txt.font;
-    txt.font = nullptr;
+    swap(*this, txt);
 }
 
 Text& Text::operator=(Text&& txt) {
-    prefix = txt.prefix;
-    picked_font = txt.picked_font;
-    font_size = txt.font_size;
-    path_to_assets_folder = txt.path_to_assets_folder;
-    font = txt.font;
-    txt.font = nullptr;
-
+    swap(*this, txt);
     return *this;
+}
+
+void Text::swap(Text &first, Text &second) {
+    std::swap(first.prefix, second.prefix);
+    std::swap(first.picked_font, second.picked_font);
+    std::swap(first.font_size, second.font_size);
+    std::swap(first.path_to_assets_folder, second.path_to_assets_folder);
+    std::swap(first.font, second.font);
 }
 
 Text::~Text()
@@ -99,10 +99,29 @@ Text::~Text()
 }
 
 std::string Text::getFullPath(std::string path_to_assets_folder) {
-    std::filesystem::path p = ".";
+    std::filesystem::path p = path_to_assets_folder;
     std::string abs_path = std::filesystem::absolute(p).generic_string(); 
-    abs_path = abs_path.substr(0, abs_path.length()-1);
     return abs_path + prefix + available_fonts[picked_font];
+}
+
+std::string Text::searchForAssets() {
+    std::string path = "./";
+    std::string search_string = "assets";
+    for (const auto & entry : std::filesystem::directory_iterator(path)) {
+        size_t find = entry.path().generic_string().find(search_string);
+        if(find != std::string::npos) 
+            return entry.path().generic_string();
+    }
+
+    path = "../";
+    for (const auto & entry : std::filesystem::directory_iterator(path)) {
+        size_t find = entry.path().generic_string().find(search_string);
+        if(find != std::string::npos) 
+            return entry.path().generic_string();
+    }
+        
+
+    return "";
 }
 
 void Text::displayText(int x, int y, std::string text, SDL_Color color, SDL_Renderer *renderer) {

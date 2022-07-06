@@ -18,6 +18,7 @@ target_link_libraries(Tetris SDL2 SDL2_ttf)
 
 set_target_properties(Tetris PROPERTIES OUTPUT_NAME "Tetris")
 target_compile_features(Tetris PRIVATE cxx_std_17)
+add_compile_options(-fsanitize=undefined)
 
 # set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 # set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

@@ -10,7 +10,6 @@
 #include <string>
 #include <stdexcept>
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 #include "Structures.h"
 #include "Deposits.hpp"
 #include "Text.hpp"
@@ -19,7 +18,7 @@
 class Grid
 {
 public:
-    Grid(int screen_width, int screen_height, int grid_size, std::string path_to_exec) : window_width(screen_width), window_height(screen_height), grid_size(grid_size), path_to_exec(path_to_exec)
+    Grid(int screen_width, int screen_height, int grid_size, std::string path_to_exec) : window_width(screen_width), window_height(screen_height), grid_size(grid_size), path_to_exec(path_to_exec), nextBlockText(Text(Fonts::BulkyPixel, 25, path_to_exec))
     {
         std::string path_to_font = path_to_exec + "/../assets/fonts/light_pixel-7.ttf";
         playfield_height = 25;
@@ -41,7 +40,7 @@ public:
         blocks = std::vector(total_grid_height * total_grid_width, initialBlock);
 
         
-        nextBlockText = Text(Fonts::BulkyPixel, 25, path_to_exec);// + "/"
+        // nextBlockText = Text(Fonts::BulkyPixel, 25, path_to_exec);// + "/"
 
         addWalls();
     }
