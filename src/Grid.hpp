@@ -33,11 +33,11 @@ public:
         assert(total_grid_width > 1.5 * playfield_width);
         assert(total_grid_height > playfield_height + 2);
 
-        wallColors = {{{.r = 240, .g = 0, .b = 255, .a = 255}, {.r = 217, .g = 32, .b = 228, .a = 255}, {.r = 156, .g = 19, .b = 165, .a = 255}}};
+        wallColors = {{{240, 0, 255, 255}, {217, 32, 228, 255}, {156, 19, 165, 255}}};
 
         Block initialBlock;
 
-        blocks = std::vector(total_grid_height * total_grid_width, initialBlock);
+        blocks = std::vector<Block>(total_grid_height * total_grid_width, initialBlock);
 
         
         // nextBlockText = Text(Fonts::BulkyPixel, 25, path_to_exec);// + "/"
@@ -101,9 +101,9 @@ public:
         Block block;
         block.blockType = BackgroundType;
         block.visible = false;
-        block.color1 = {.r = 255, .g = 255, .b = 255, .a = 255};
-        block.color2 = {.r = 255, .g = 255, .b = 255, .a = 255};
-        block.color3 = {.r = 238, .g = 238, .b = 238, .a = 255};
+        block.color1 = {255, 255, 255, 255};
+        block.color2 = {255, 255, 255, 255};
+        block.color3 = {238, 238, 238, 255};
         return block;
     }
 
@@ -234,7 +234,7 @@ public:
     {
         // Add moved tetromino to grid
         // displayText(renderer);
-        nextBlockText.displayText((right_wall_pos + 2) * grid_size, grid_size, "Next Block:", {.r = 255, .g = 255, .b = 255, .a = 255}, renderer);
+        nextBlockText.displayText((right_wall_pos + 2) * grid_size, grid_size, "Next Block:", {255, 255, 255, 255}, renderer);
         int inner_size = 4;
         int border_size = 2;
         Uint8 val = 25;
