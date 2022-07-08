@@ -62,6 +62,7 @@ int main(int argc, char **argv)
     int tetrominoTypes = 7;
     int tetrominoTypeNum = rand() % tetrominoTypes;
     int x_push = 0;
+    int y_push = 0;
     int start_gravity = 10;
     int gravity = start_gravity; // 5 grid moves per second
     int count_frames = 0;
@@ -69,6 +70,7 @@ int main(int argc, char **argv)
     bool newBlock = true;
     bool move = false;
     bool firstCheck = true;
+    std::vector<int> linesToClear;
     const char *title = "Tetris::The Begining";
     std::string path_to_exec = argv[0];
 
@@ -102,9 +104,12 @@ int main(int argc, char **argv)
 
     while (!close)
     {
+        y_push = 1;
+
         if (newBlock)
         {
-            deposits->clearLines();
+
+            linesToClear = deposits->findAllFullLines();
             tetrominoTypeNum = rand() % tetrominoTypes;
             // tetrominoTypeNum = 0;
             tetr = nextTetr;
@@ -158,8 +163,10 @@ int main(int argc, char **argv)
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_d:
+                    // x_push = 0;
                     break;
                 case SDLK_a:
+                    // x_push = 0;
                     break;
                 case SDLK_e:
                     break;
@@ -176,6 +183,16 @@ int main(int argc, char **argv)
             }
         }
 
+        if (linesToClear.size() > 0)
+        {
+            y_push = 0;
+            if (deposits->fadeLines(linesToClear))
+            {
+                deposits->clearLines();
+                linesToClear.clear();
+            }
+        }
+
         if (grid.detectCollision(0, 0))
             close = true;
 
@@ -188,11 +205,11 @@ int main(int argc, char **argv)
             }
         }
 
-        if (!grid.detectCollision(0, 1))
+        if (!grid.detectCollision(0, y_push))
         {
             if (move)
             {
-                tetr->move(0, 1);
+                tetr->move(0, y_push);
             }
         }
         else
@@ -213,16 +230,6 @@ int main(int argc, char **argv)
 
         grid.placeTetrominosOnGrid();
 
-        if (renderer == NULL)
-        {
-            std::cout << "Renderer null" << std::endl;
-        }
-
-        if (renderer == nullptr)
-        {
-            std::cout << "Renderer null" << std::endl;
-        }
-
         grid.render(renderer);
 
         SDL_Delay(1000 / speed);
@@ -237,8 +244,6 @@ int main(int argc, char **argv)
             count_frames++;
             move = false;
         }
-
-        // std::cout << "Current gravity: " << gravity << std::endl;
     }
 
     SDL_DestroyWindow(window);

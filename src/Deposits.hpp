@@ -9,6 +9,8 @@ private:
     std::vector<Block> deposits;
     int playfield_width;
     int playfield_height;
+    int a = 255;
+    int fade_speed = 10;
 
 public:
     Deposits(int playfield_width, int playfield_height);
@@ -20,9 +22,13 @@ public:
     bool lineFull(int i);
     void clearLine(int i);
     void clearLines();
+    void changeAlpha(int i, int j, int alpha);
+    bool fadeLines(std::vector<int> line);
+    void fadeLine(int i, int alpha);
     void moveLine(int from, int to);
     void addBlock(Block block, int i, int j);
     void swapDeposits(std::vector<Block> newDeposits);
+    std::vector<int> findAllFullLines();
     Block at(int i, int j);
     ~Deposits();
 };
@@ -70,6 +76,37 @@ bool Deposits::lineFull(int i)
     return col == playfield_width;
 }
 
+void Deposits::changeAlpha(int i, int j, int alpha)
+{
+    int offset = toOffset(i, j);
+    Block block = deposits[offset];
+    block.color1.a = alpha;
+    block.color2.a = alpha;
+    block.color2.a = alpha;
+    deposits[offset] = block;
+}
+
+void Deposits::fadeLine(int i, int alpha)
+{
+    for (int j = 0; j < getWidth(); j++)
+    {
+        changeAlpha(i, j, alpha);
+    }
+}
+
+bool Deposits::fadeLines(std::vector<int> line)
+{
+
+    a -= fade_speed;
+
+    for (int &line : line) // access by reference to avoid copying
+    {
+        fadeLine(line, a);
+    }
+
+    return a <= 0;
+}
+
 void Deposits::clearLine(int i)
 {
     Block defaultBlock;
@@ -79,9 +116,10 @@ void Deposits::clearLine(int i)
         deposits[toOffset(i, j)] = defaultBlock;
     }
 }
-//This assumes that to is always bigger than from
-void Deposits::moveLine(int from, int to) {
-    int diff=0;
+// This assumes that to is always bigger than from
+void Deposits::moveLine(int from, int to)
+{
+    int diff = 0;
     for (int j = 0; j < getWidth(); j++)
     {
         diff = to - from;
@@ -89,6 +127,23 @@ void Deposits::moveLine(int from, int to) {
         fromBlock.y = fromBlock.y + diff;
         deposits[toOffset(to, j)] = fromBlock;
     }
+}
+
+std::vector<int> Deposits::findAllFullLines()
+{
+    std::vector<int> fullLines;
+    if (!deposits.empty())
+    {
+        for (int i = getHeight() - 1; i >= 0; i--)
+        {
+            if (lineFull(i))
+            {
+                fullLines.push_back(i);
+            }
+        }
+    }
+
+    return fullLines;
 }
 
 void Deposits::clearLines()
@@ -106,11 +161,14 @@ void Deposits::clearLines()
                 continue;
             }
 
-            if(lines > 0) {
-                moveLine(i, i+lines);
+            if (lines > 0)
+            {
+                moveLine(i, i + lines);
             }
         }
     }
+
+    a = 255;
 }
 
 void Deposits::addBlock(Block block, int i, int j)
