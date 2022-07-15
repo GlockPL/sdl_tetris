@@ -1,6 +1,7 @@
 
 #include "Grid.hpp"
 #include "Deposits.hpp"
+#include "Score.hpp"
 
 #include "Tetrominos/ITetromino.hpp"
 #include "Tetrominos/JTetromino.hpp"
@@ -63,7 +64,7 @@ int main(int argc, char **argv)
     int tetrominoTypeNum = rand() % tetrominoTypes;
     int x_push = 0;
     int y_push = 0;
-    int start_gravity = 10;
+    int start_gravity = 20;
     int gravity = start_gravity; // 5 grid moves per second
     int count_frames = 0;
     bool close = false;
@@ -92,7 +93,8 @@ int main(int argc, char **argv)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    Grid grid = Grid(1000, 1000, 35, path_to_exec);
+    std::shared_ptr<Score> score = std::make_shared<Score>();    
+    Grid grid = Grid(1000, 1000, 35, path_to_exec, score);    
     std::shared_ptr<Deposits> deposits = std::make_shared<Deposits>(grid.getPlayfieldWidth(), grid.getPlayfieldHeight());
     grid.addDeposits(deposits);
 
@@ -188,6 +190,7 @@ int main(int argc, char **argv)
             y_push = 0;
             if (deposits->fadeLines(linesToClear))
             {
+                score->calculateScore(linesToClear.size());
                 deposits->clearLines();
                 linesToClear.clear();
             }

@@ -10,7 +10,7 @@ private:
     int playfield_width;
     int playfield_height;
     int a = 255;
-    int fade_speed = 10;
+    int fade_speed = 15;
 
 public:
     Deposits(int playfield_width, int playfield_height);
