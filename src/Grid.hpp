@@ -10,6 +10,8 @@
 #include <string>
 #include <stdexcept>
 #include <SDL2/SDL.h>
+
+#include <Score.hpp>
 #include "Structures.h"
 #include "Deposits.hpp"
 #include "Text.hpp"
@@ -18,7 +20,7 @@
 class Grid
 {
 public:
-    Grid(int screen_width, int screen_height, int grid_size, std::string path_to_exec) : window_width(screen_width), window_height(screen_height), grid_size(grid_size), path_to_exec(path_to_exec), nextBlockText(Text(Fonts::BulkyPixel, 25, path_to_exec))
+    Grid(int screen_width, int screen_height, int grid_size, std::string path_to_exec, std::shared_ptr<Score> score) : window_width(screen_width), window_height(screen_height), grid_size(grid_size), path_to_exec(path_to_exec), nextBlockText(Text(Fonts::BulkyPixel, 25, path_to_exec)), score(score)
     {
         std::string path_to_font = path_to_exec + "/../assets/fonts/light_pixel-7.ttf";
         playfield_height = 25;
@@ -33,11 +35,11 @@ public:
         assert(total_grid_width > 1.5 * playfield_width);
         assert(total_grid_height > playfield_height + 2);
 
-        wallColors = {{{.r = 240, .g = 0, .b = 255, .a = 255}, {.r = 217, .g = 32, .b = 228, .a = 255}, {.r = 156, .g = 19, .b = 165, .a = 255}}};
+        wallColors = {{{240, 0, 255, 255}, {217, 32, 228, 255}, {156, 19, 165, 255}}};
 
         Block initialBlock;
 
-        blocks = std::vector(total_grid_height * total_grid_width, initialBlock);
+        blocks = std::vector<Block>(total_grid_height * total_grid_width, initialBlock);
 
         
         // nextBlockText = Text(Fonts::BulkyPixel, 25, path_to_exec);// + "/"
@@ -101,9 +103,9 @@ public:
         Block block;
         block.blockType = BackgroundType;
         block.visible = false;
-        block.color1 = {.r = 255, .g = 255, .b = 255, .a = 255};
-        block.color2 = {.r = 255, .g = 255, .b = 255, .a = 255};
-        block.color3 = {.r = 238, .g = 238, .b = 238, .a = 255};
+        block.color1 = {255, 255, 255, 255};
+        block.color2 = {255, 255, 255, 255};
+        block.color3 = {238, 238, 238, 255};
         return block;
     }
 
@@ -234,7 +236,11 @@ public:
     {
         // Add moved tetromino to grid
         // displayText(renderer);
-        nextBlockText.displayText((right_wall_pos + 2) * grid_size, grid_size, "Next Block:", {.r = 255, .g = 255, .b = 255, .a = 255}, renderer);
+        nextBlockText.displayText((right_wall_pos + 2) * grid_size, grid_size, "Next Block:", {144, 238, 245, 255}, renderer);
+        nextBlockText.displayText(2 * grid_size, grid_size, "High Score:", {255, 15, 15, 255}, renderer);
+        nextBlockText.displayText(2 * grid_size, grid_size*2, std::to_string(score->getHighScore()) , {255, 255, 255, 255}, renderer);
+        nextBlockText.displayText(2 * grid_size, grid_size*3, "Score:", {255, 255, 15, 255}, renderer);
+        nextBlockText.displayText(2 * grid_size, grid_size*4, std::to_string(score->getCurrentScore()) , {255, 255, 255, 255}, renderer);
         int inner_size = 4;
         int border_size = 2;
         Uint8 val = 25;
@@ -529,6 +535,7 @@ private:
     std::shared_ptr<Tetromino> ghostTetr;
     std::shared_ptr<Tetromino> nextTetr;
     std::shared_ptr<Deposits> deposits;
+    std::shared_ptr<Score> score;
     Text nextBlockText;
 };
 

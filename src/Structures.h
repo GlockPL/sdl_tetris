@@ -26,9 +26,9 @@ struct Block
     int y = 0;
     BlockType blockType = BlockType::BackgroundType;
     bool visible = false;
-    SDL_Color color1 = {.r = 123, .g = 123, .b = 123};
-    SDL_Color color2 = {.r = 123, .g = 123, .b = 123};
-    SDL_Color color3 = {.r = 123, .g = 123, .b = 123};
+    SDL_Color color1 = {123, 123, 123,255};
+    SDL_Color color2 = {123, 123, 123,255 };
+    SDL_Color color3 = {123, 123, 123,255 };
 
     bool operator < (const Block& str) const
     {
