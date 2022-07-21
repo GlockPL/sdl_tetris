@@ -473,6 +473,35 @@ public:
         }
     }
 
+    void rotateCounterClockwiseProcedure()
+    {
+        int x_p = 0;
+        int y_p = 0;
+
+        int from = tetr->getCurrentRotation();
+        int to = tetr->rotateCounterClockwise();
+        bool collision = false;
+        std::string kickSignature = std::to_string(from) + "->" + std::to_string(to);
+        std::array<KickPair, Tests> kickMoves = tetr->getKick(kickSignature);
+
+        for (int i = 0; i < Tests; i++)
+        {
+            x_p = kickMoves[i].x;
+            y_p = kickMoves[i].y;
+            collision = detectCollision(x_p, y_p);
+            if (!collision)
+            {
+                tetr->move(x_p, y_p);
+                break;
+            }
+        }
+
+        if (collision)
+        {
+            tetr->rotateClockwise();
+        }
+    }
+
 private:
     int toOffset(int y, int x)
     {

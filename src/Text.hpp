@@ -28,8 +28,6 @@ private:
     Fonts picked_font;
     int font_size;
     std::string path_to_assets_folder;
-    int deRefcount = 0;
-    int unsuccesfullRefCount = 0;
     void swap(Text &first, Text &second);
 
 public:
@@ -67,8 +65,6 @@ Text::Text(Fonts picked_font, int font_size, std::string path_to_assets_folder) 
 
     font = TTF_OpenFont(full_path.c_str(), font_size);
 
-    std::cout << "Adres: " << font << std::endl;
-
     if (!font)
     {
         std::cerr << "Failed to load font! " << TTF_GetError() << std::endl;
@@ -99,20 +95,14 @@ Text::~Text()
 {
     if (font != nullptr)
     {
-        deRefcount++;
         instance_counter--;
-        std::cout << "Dereferencja nr: " << deRefcount << " for address: " << font << std::endl;
         TTF_CloseFont(font);
 
         if(instance_counter == 0) {
             TTF_Quit();
         }
     }
-    else
-    {
-        unsuccesfullRefCount++;
-        std::cout << "Dereferencja nie udana nr: " << unsuccesfullRefCount << " for address: " << font << std::endl;
-    }
+   
 }
 
 std::string Text::getFullPath(std::string path_to_assets_folder)

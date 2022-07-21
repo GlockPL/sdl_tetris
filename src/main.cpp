@@ -3,57 +3,18 @@
 #include "Deposits.hpp"
 #include "Score.hpp"
 
-#include "Tetrominos/ITetromino.hpp"
-#include "Tetrominos/JTetromino.hpp"
-#include "Tetrominos/LTetromino.hpp"
-#include "Tetrominos/OTetromino.hpp"
-#include "Tetrominos/STetromino.hpp"
-#include "Tetrominos/TTetromino.hpp"
-#include "Tetrominos/ZTetromino.hpp"
 #include "Tetrominos/Tetromino.hpp"
+#include "Tetrominos/TetrominoFactory.hpp"
 
 #include <iostream>
 #include <cstdlib>
 #include <memory>
 #include <string>
+#include <random>
 
-std::shared_ptr<Tetromino> pickTetromino(int num)
-{
-    switch (num)
-    {
-    case 0:
-        return std::make_shared<ITetromino>();
-        break;
-    case 1:
-        return std::make_shared<OTetromino>();
-        break;
-    case 2:
-        return std::make_shared<TTetromino>();
-        break;
-    case 3:
-        return std::make_shared<JTetromino>();
-        break;
-    case 4:
-        return std::make_shared<LTetromino>();
-        break;
-    case 5:
-        return std::make_shared<STetromino>();
-        break;
-    case 6:
-        return std::make_shared<ZTetromino>();
-        break;
-
-    default:
-        return std::make_shared<Tetromino>();
-        break;
-    }
-
-    return std::make_shared<Tetromino>();
-}
 
 int main(int argc, char **argv)
 {
-    srand(time(0));
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
     SDL_Event event;
@@ -61,7 +22,6 @@ int main(int argc, char **argv)
     int height = 1000;
     int width = 1000;
     int tetrominoTypes = 7;
-    int tetrominoTypeNum = rand() % tetrominoTypes;
     int x_push = 0;
     int y_push = 0;
     int start_gravity = 20;
@@ -74,6 +34,12 @@ int main(int argc, char **argv)
     std::vector<int> linesToClear;
     const char *title = "Tetris::The Begining";
     std::string path_to_exec = argv[0];
+    // For random tetromino generation
+    srand(time(0));
+    std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(time(0)); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_int_distribution<> distrib(0, tetrominoTypes-1);
+    int tetrominoTypeNum = distrib(gen);
 
     path_to_exec = path_to_exec.substr(0, path_to_exec.find_last_of("\\/"));
     std::cout << path_to_exec << std::endl;
@@ -102,7 +68,7 @@ int main(int argc, char **argv)
     std::shared_ptr<Tetromino> tetr;
     std::shared_ptr<Tetromino> nextTetr;
 
-    nextTetr = pickTetromino(tetrominoTypeNum);
+    nextTetr = TetrominoFactory::Create(TetrominoKind(tetrominoTypeNum));
 
     while (!close)
     {
@@ -112,10 +78,10 @@ int main(int argc, char **argv)
         {
 
             linesToClear = deposits->findAllFullLines();
-            tetrominoTypeNum = rand() % tetrominoTypes;
+            tetrominoTypeNum = distrib(gen);
             // tetrominoTypeNum = 0;
             tetr = nextTetr;
-            nextTetr = pickTetromino(tetrominoTypeNum);
+            nextTetr = TetrominoFactory::Create(TetrominoKind(tetrominoTypeNum));
             grid.addTetromino(tetr);
             grid.addNextTetromino(nextTetr);
             grid.moveNextTetrToDisplay();
@@ -151,10 +117,10 @@ int main(int argc, char **argv)
                     grid.rotateClockwiseProcedure();
                     break;
                 case SDLK_q:
-                    tetr->rotateCounterClockwise();
+                    grid.rotateCounterClockwiseProcedure();
                     break;
                 case SDLK_s:
-                    gravity = static_cast<int>(start_gravity * 0.25);
+                    gravity = static_cast<int>(start_gravity * 0.125);
                     break;
 
                     // default:
