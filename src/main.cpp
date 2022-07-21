@@ -117,7 +117,7 @@ int main(int argc, char **argv)
                     grid.rotateClockwiseProcedure();
                     break;
                 case SDLK_q:
-                    tetr->rotateCounterClockwise();
+                    grid.rotateCounterClockwiseProcedure();
                     break;
                 case SDLK_s:
                     gravity = static_cast<int>(start_gravity * 0.125);
