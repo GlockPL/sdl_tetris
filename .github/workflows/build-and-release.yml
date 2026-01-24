@@ -34,6 +34,7 @@ jobs:
 
     - name: Install SDL2 (Windows)
       if: matrix.os == 'windows-latest'
+      shell: powershell
       run: |
         # Download SDL2
         Invoke-WebRequest -Uri "https://github.com/libsdl-org/SDL/releases/download/release-2.28.5/SDL2-devel-2.28.5-VC.zip" -OutFile "SDL2.zip"
@@ -43,9 +44,15 @@ jobs:
         Invoke-WebRequest -Uri "https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.20.2/SDL2_ttf-devel-2.20.2-VC.zip" -OutFile "SDL2_ttf.zip"
         Expand-Archive -Path SDL2_ttf.zip -DestinationPath .
 
-        # Set environment variables
-        echo "SDL2_DIR=$PWD/SDL2-2.28.5" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        echo "SDL2_TTF_DIR=$PWD/SDL2_ttf-2.20.2" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        # Set environment variables with absolute paths
+        $sdl2Path = Join-Path $PWD "SDL2-2.28.5"
+        $sdl2TtfPath = Join-Path $PWD "SDL2_ttf-2.20.2"
+
+        echo "SDL2_DIR=$sdl2Path" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "SDL2_TTF_DIR=$sdl2TtfPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+        Write-Host "SDL2_DIR set to: $sdl2Path"
+        Write-Host "SDL2_TTF_DIR set to: $sdl2TtfPath"
 
     - name: Configure CMake (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
@@ -53,10 +60,11 @@ jobs:
 
     - name: Configure CMake (Windows)
       if: matrix.os == 'windows-latest'
+      shell: powershell
       run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=Release `
-          -DSDL2_DIR="$env:SDL2_DIR" `
-          -DSDL2_TTF_DIR="$env:SDL2_TTF_DIR"
+        Write-Host "Configuring with SDL2_DIR: $env:SDL2_DIR"
+        Write-Host "Configuring with SDL2_TTF_DIR: $env:SDL2_TTF_DIR"
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
       run: cmake --build build --config Release
@@ -71,19 +79,32 @@ jobs:
 
     - name: Prepare artifacts (Windows)
       if: matrix.os == 'windows-latest'
+      shell: powershell
       run: |
         New-Item -ItemType Directory -Force -Path artifacts/assets
         Copy-Item build/Release/Tetris.exe artifacts/
-        Copy-Item assets/* artifacts/assets/ -Recurse -ErrorAction SilentlyContinue
+        if (Test-Path assets) {
+          Copy-Item assets/* artifacts/assets/ -Recurse -ErrorAction SilentlyContinue
+        }
 
         # Copy SDL2 DLLs
+        Write-Host "Copying SDL2.dll from: $env:SDL2_DIR/lib/x64/SDL2.dll"
+        Write-Host "Copying SDL2_ttf.dll from: $env:SDL2_TTF_DIR/lib/x64/SDL2_ttf.dll"
         Copy-Item "$env:SDL2_DIR/lib/x64/SDL2.dll" artifacts/
         Copy-Item "$env:SDL2_TTF_DIR/lib/x64/SDL2_ttf.dll" artifacts/
 
-    - name: Archive artifacts
+    - name: Archive artifacts (Linux)
+      if: matrix.os == 'ubuntu-latest'
       run: |
         cd artifacts
-        7z a -tzip ../${{ matrix.asset_name }}.zip *
+        zip -r ../${{ matrix.asset_name }}.zip *
+
+    - name: Archive artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: powershell
+      run: |
+        cd artifacts
+        Compress-Archive -Path * -DestinationPath ../${{ matrix.asset_name }}.zip
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
