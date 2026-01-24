@@ -11,29 +11,18 @@ if(WIN32)
         set(SDL2_TTF_DIR $ENV{SDL2_TTF_DIR})
     endif()
 
-    # Find SDL2
-    find_path(SDL2_INCLUDE_DIR SDL.h
-        HINTS ${SDL2_DIR}
-        PATH_SUFFIXES include
-    )
-    find_library(SDL2_LIBRARY SDL2
-        HINTS ${SDL2_DIR}
-        PATH_SUFFIXES lib/x64 lib
-    )
-    find_library(SDL2MAIN_LIBRARY SDL2main
-        HINTS ${SDL2_DIR}
-        PATH_SUFFIXES lib/x64 lib
-    )
+    # Set include and library paths directly (structure matches Linux after restructuring in CI)
+    set(SDL2_INCLUDE_DIR "${SDL2_DIR}/include")
+    set(SDL2_TTF_INCLUDE_DIR "${SDL2_TTF_DIR}/include")
 
-    # Find SDL2_ttf
-    find_path(SDL2_TTF_INCLUDE_DIR SDL_ttf.h
-        HINTS ${SDL2_TTF_DIR}
-        PATH_SUFFIXES include
-    )
-    find_library(SDL2_TTF_LIBRARY SDL2_ttf
-        HINTS ${SDL2_TTF_DIR}
-        PATH_SUFFIXES lib/x64 lib
-    )
+    set(SDL2_LIBRARY "${SDL2_DIR}/lib/x64/SDL2.lib")
+    set(SDL2MAIN_LIBRARY "${SDL2_DIR}/lib/x64/SDL2main.lib")
+    set(SDL2_TTF_LIBRARY "${SDL2_TTF_DIR}/lib/x64/SDL2_ttf.lib")
+
+    message(STATUS "SDL2 Include: ${SDL2_INCLUDE_DIR}")
+    message(STATUS "SDL2 Library: ${SDL2_LIBRARY}")
+    message(STATUS "SDL2_ttf Include: ${SDL2_TTF_INCLUDE_DIR}")
+    message(STATUS "SDL2_ttf Library: ${SDL2_TTF_LIBRARY}")
 
     set(SDL2_INCLUDE_DIRS ${SDL2_INCLUDE_DIR} ${SDL2_TTF_INCLUDE_DIR})
     set(SDL2_LIBRARIES ${SDL2_LIBRARY} ${SDL2MAIN_LIBRARY})

@@ -44,6 +44,22 @@ jobs:
         Invoke-WebRequest -Uri "https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.20.2/SDL2_ttf-devel-2.20.2-VC.zip" -OutFile "SDL2_ttf.zip"
         Expand-Archive -Path SDL2_ttf.zip -DestinationPath .
 
+        # Restructure SDL2 include directory to match Linux structure (include/SDL2/*.h)
+        $sdl2IncludePath = "SDL2-2.28.5/include"
+        $sdl2NewIncludePath = "SDL2-2.28.5/include_restructured/SDL2"
+        New-Item -ItemType Directory -Force -Path $sdl2NewIncludePath
+        Copy-Item "$sdl2IncludePath/*" -Destination $sdl2NewIncludePath -Recurse
+        Remove-Item "$sdl2IncludePath" -Recurse
+        Rename-Item "SDL2-2.28.5/include_restructured" "include"
+
+        # Do the same for SDL2_ttf
+        $sdl2TtfIncludePath = "SDL2_ttf-2.20.2/include"
+        $sdl2TtfNewIncludePath = "SDL2_ttf-2.20.2/include_restructured/SDL2"
+        New-Item -ItemType Directory -Force -Path $sdl2TtfNewIncludePath
+        Copy-Item "$sdl2TtfIncludePath/*" -Destination $sdl2TtfNewIncludePath -Recurse
+        Remove-Item "$sdl2TtfIncludePath" -Recurse
+        Rename-Item "SDL2_ttf-2.20.2/include_restructured" "include"
+
         # Set environment variables with absolute paths
         $sdl2Path = Join-Path $PWD "SDL2-2.28.5"
         $sdl2TtfPath = Join-Path $PWD "SDL2_ttf-2.20.2"
@@ -53,6 +69,7 @@ jobs:
 
         Write-Host "SDL2_DIR set to: $sdl2Path"
         Write-Host "SDL2_TTF_DIR set to: $sdl2TtfPath"
+        Write-Host "SDL2 include structure restructured to include/SDL2/"
 
     - name: Configure CMake (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
