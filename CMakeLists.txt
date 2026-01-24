@@ -24,7 +24,9 @@ if(WIN32)
     message(STATUS "SDL2_ttf Include: ${SDL2_TTF_INCLUDE_DIR}")
     message(STATUS "SDL2_ttf Library: ${SDL2_TTF_LIBRARY}")
 
-    set(SDL2_INCLUDE_DIRS ${SDL2_INCLUDE_DIR} ${SDL2_TTF_INCLUDE_DIR})
+    # Include both the base directory and SDL2 subdirectory
+    # This allows both #include <SDL2/SDL.h> and #include <SDL.h> (used internally by SDL_ttf.h)
+    set(SDL2_INCLUDE_DIRS ${SDL2_INCLUDE_DIR} ${SDL2_INCLUDE_DIR}/SDL2 ${SDL2_TTF_INCLUDE_DIR} ${SDL2_TTF_INCLUDE_DIR}/SDL2)
     set(SDL2_LIBRARIES ${SDL2_LIBRARY} ${SDL2MAIN_LIBRARY})
     set(SDL2_TTF_LIBRARIES ${SDL2_TTF_LIBRARY})
 else()
