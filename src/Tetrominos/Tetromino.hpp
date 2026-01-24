@@ -267,7 +267,7 @@ int Tetromino::rotateCounterClockwise() {
     }
     blocks.clear();
     blocks = rotatedBlocks;
-    currentRotation = (currentRotation - 1) % 4;
+    currentRotation = (currentRotation - 1 + 4) % 4;
     return currentRotation;
 }
 

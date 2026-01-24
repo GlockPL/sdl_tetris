@@ -11,7 +11,7 @@
 #include <stdexcept>
 #include <SDL2/SDL.h>
 
-#include <Score.hpp>
+#include "Score.hpp"
 #include "Structures.h"
 #include "Deposits.hpp"
 #include "Text.hpp"

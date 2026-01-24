@@ -1,0 +1,121 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: Tetris
+            asset_name: tetris-linux-x64
+          - os: windows-latest
+            artifact_name: Tetris.exe
+            asset_name: tetris-windows-x64.exe
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install SDL2 (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libsdl2-dev libsdl2-ttf-dev
+
+    - name: Install SDL2 (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        # Download SDL2
+        Invoke-WebRequest -Uri "https://github.com/libsdl-org/SDL/releases/download/release-2.28.5/SDL2-devel-2.28.5-VC.zip" -OutFile "SDL2.zip"
+        Expand-Archive -Path SDL2.zip -DestinationPath .
+
+        # Download SDL2_ttf
+        Invoke-WebRequest -Uri "https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.20.2/SDL2_ttf-devel-2.20.2-VC.zip" -OutFile "SDL2_ttf.zip"
+        Expand-Archive -Path SDL2_ttf.zip -DestinationPath .
+
+        # Set environment variables
+        echo "SDL2_DIR=$PWD/SDL2-2.28.5" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "SDL2_TTF_DIR=$PWD/SDL2_ttf-2.20.2" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Configure CMake (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Configure CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release `
+          -DSDL2_DIR="$env:SDL2_DIR" `
+          -DSDL2_TTF_DIR="$env:SDL2_TTF_DIR"
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Prepare artifacts (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        mkdir -p artifacts/assets
+        cp build/Tetris artifacts/
+        cp -r assets/* artifacts/assets/ || true
+        chmod +x artifacts/Tetris
+
+    - name: Prepare artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        New-Item -ItemType Directory -Force -Path artifacts/assets
+        Copy-Item build/Release/Tetris.exe artifacts/
+        Copy-Item assets/* artifacts/assets/ -Recurse -ErrorAction SilentlyContinue
+
+        # Copy SDL2 DLLs
+        Copy-Item "$env:SDL2_DIR/lib/x64/SDL2.dll" artifacts/
+        Copy-Item "$env:SDL2_TTF_DIR/lib/x64/SDL2_ttf.dll" artifacts/
+
+    - name: Archive artifacts
+      run: |
+        cd artifacts
+        7z a -tzip ../${{ matrix.asset_name }}.zip *
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.asset_name }}
+        path: ${{ matrix.asset_name }}.zip
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/tetris-linux-x64/tetris-linux-x64.zip
+          artifacts/tetris-windows-x64.exe/tetris-windows-x64.exe.zip
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

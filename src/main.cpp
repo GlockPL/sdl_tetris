@@ -31,6 +31,10 @@ int main(int argc, char **argv)
     bool newBlock = true;
     bool move = false;
     bool firstCheck = true;
+    bool checkGameOver = false;
+    int horizontal_delay_frames = 0;
+    int horizontal_delay_initial = 10; // Delay before auto-repeat starts (in frames)
+    int horizontal_delay_repeat = 3;   // Delay between repeated moves (in frames)
     std::vector<int> linesToClear;
     const char *title = "Tetris::The Begining";
     std::string path_to_exec = argv[0];
@@ -91,6 +95,8 @@ int main(int argc, char **argv)
             newBlock = false;
             firstCheck = true;
             x_push = 0;
+            horizontal_delay_frames = 0;
+            checkGameOver = true;
         }
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -98,6 +104,16 @@ int main(int argc, char **argv)
 
         grid.placeWalls();
         grid.placeDeposits();
+
+        // Check for game over after deposits are placed
+        if (checkGameOver)
+        {
+            if (grid.detectCollision(0, 0))
+            {
+                close = true;
+            }
+            checkGameOver = false;
+        }
 
         while (SDL_PollEvent(&event))
         {
@@ -108,10 +124,18 @@ int main(int argc, char **argv)
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_d:
-                    x_push = 1;
+                    if (x_push != 1)  // Only reset timer on new key press
+                    {
+                        x_push = 1;
+                        horizontal_delay_frames = 0;
+                    }
                     break;
                 case SDLK_a:
-                    x_push = -1;
+                    if (x_push != -1)  // Only reset timer on new key press
+                    {
+                        x_push = -1;
+                        horizontal_delay_frames = 0;
+                    }
                     break;
                 case SDLK_e:
                     grid.rotateClockwiseProcedure();
@@ -131,10 +155,12 @@ int main(int argc, char **argv)
                 switch (event.key.keysym.sym)
                 {
                 case SDLK_d:
-                    // x_push = 0;
+                    x_push = 0;
+                    horizontal_delay_frames = 0;
                     break;
                 case SDLK_a:
-                    // x_push = 0;
+                    x_push = 0;
+                    horizontal_delay_frames = 0;
                     break;
                 case SDLK_e:
                     break;
@@ -162,28 +188,42 @@ int main(int argc, char **argv)
             }
         }
 
-        if (grid.detectCollision(0, 0))
-            close = true;
-
-        if (!grid.detectCollision(x_push, 0))
+        // Horizontal movement with delay/auto-repeat
+        if (x_push != 0)
         {
-            if (move)
+            bool should_move = false;
+
+            if (horizontal_delay_frames == 0)
+            {
+                // First move - happens immediately
+                should_move = true;
+                horizontal_delay_frames = horizontal_delay_initial;
+            }
+            else if (horizontal_delay_frames == 1)
+            {
+                // Auto-repeat move
+                should_move = true;
+                horizontal_delay_frames = horizontal_delay_repeat;
+            }
+            else
+            {
+                horizontal_delay_frames--;
+            }
+
+            if (should_move && !grid.detectCollision(x_push, 0))
             {
                 tetr->move(x_push, 0);
-                x_push = 0;
             }
         }
 
-        if (!grid.detectCollision(0, y_push))
+        // Vertical movement only happens based on gravity timer
+        if (move)
         {
-            if (move)
+            if (!grid.detectCollision(0, y_push))
             {
                 tetr->move(0, y_push);
             }
-        }
-        else
-        {
-            if (move)
+            else
             {
                 if (firstCheck)
                 {
